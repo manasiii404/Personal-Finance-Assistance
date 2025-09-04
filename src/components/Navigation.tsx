@@ -1,4 +1,6 @@
-import React from 'react';
+import React from "react";
+import { useAlerts } from "../contexts/AlertContext";
+import { useAuth } from "../contexts/AuthContext";
 import {
   LayoutDashboard,
   CreditCard,
@@ -7,23 +9,30 @@ import {
   Bell,
   Target,
   Settings,
-  Wallet
-} from 'lucide-react';
+  Wallet,
+  LogOut,
+} from "lucide-react";
 
 interface NavigationProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab }) => {
+export const Navigation: React.FC<NavigationProps> = ({
+  activeTab,
+  setActiveTab,
+}) => {
+  const { unreadCount } = useAlerts();
+  const { user, logout } = useAuth();
+
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Transactions', icon: CreditCard },
-    { id: 'budget', label: 'Budget', icon: PiggyBank },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'alerts', label: 'Alerts', icon: Bell },
-    { id: 'goals', label: 'Goals', icon: Target },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "transactions", label: "Transactions", icon: CreditCard },
+    { id: "budget", label: "Budget", icon: PiggyBank },
+    { id: "analytics", label: "Analytics", icon: BarChart3 },
+    { id: "alerts", label: "Alerts", icon: Bell, badge: unreadCount },
+    { id: "goals", label: "Goals", icon: Target },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
@@ -38,32 +47,61 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab 
             <p className="text-sm text-gray-500">Smart Financial Planning</p>
           </div>
         </div>
+        {user && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">
+              {user.name || "User"}
+            </p>
+            <p className="text-xs text-gray-500">{user.email}</p>
+          </div>
+        )}
       </div>
-      
+
       <nav className="p-4">
         <ul className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
-            
+
             return (
               <li key={item.id}>
                 <button
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-all duration-200 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                      ? "bg-blue-50 text-blue-700 border border-blue-200"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
                 >
-                  <Icon className={`h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <span className="font-medium">{item.label}</span>
+                  <div className="flex items-center space-x-3">
+                    <Icon
+                      className={`h-5 w-5 ${
+                        isActive ? "text-blue-600" : "text-gray-400"
+                      }`}
+                    />
+                    <span className="font-medium">{item.label}</span>
+                  </div>
+                  {item.badge && item.badge > 0 && (
+                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               </li>
             );
           })}
         </ul>
       </nav>
+
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+        <button
+          onClick={logout}
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
+        >
+          <LogOut className="h-5 w-5 text-gray-400" />
+          <span className="font-medium">Sign Out</span>
+        </button>
+      </div>
     </div>
   );
 };

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import apiService from "../services/api";
+import { useAuth } from "./AuthContext";
 
 interface Transaction {
   id: string;
@@ -6,7 +8,7 @@ interface Transaction {
   description: string;
   amount: number;
   category: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   source: string;
 }
 
@@ -15,7 +17,7 @@ interface Budget {
   category: string;
   limit: number;
   spent: number;
-  period: 'monthly' | 'weekly' | 'yearly';
+  period: "monthly" | "weekly" | "yearly";
 }
 
 interface Goal {
@@ -25,20 +27,38 @@ interface Goal {
   current: number;
   deadline: string;
   category: string;
+  daysLeft?: number;
+  percentage?: number;
+  isCompleted?: boolean;
+  isOverdue?: boolean;
 }
 
 interface FinanceContextType {
   transactions: Transaction[];
   budgets: Budget[];
   goals: Goal[];
-  addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
-  updateBudget: (budget: Budget) => void;
-  addGoal: (goal: Omit<Goal, 'id'>) => void;
-  updateGoal: (goal: Goal) => void;
-  deleteTransaction: (id: string) => void;
+  isLoading: boolean;
+  error: string | null;
+  addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>;
+  updateTransaction: (
+    id: string,
+    transaction: Partial<Omit<Transaction, "id">>
+  ) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  addBudget: (budget: Omit<Budget, "id">) => Promise<void>;
+  updateBudget: (
+    id: string,
+    budget: Partial<Omit<Budget, "id">>
+  ) => Promise<void>;
+  deleteBudget: (id: string) => Promise<void>;
+  addGoal: (goal: Omit<Goal, "id">) => Promise<void>;
+  updateGoal: (id: string, goal: Partial<Omit<Goal, "id">>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  addContribution: (goalId: string, amount: number) => Promise<void>;
   totalIncome: number;
   totalExpenses: number;
   savingsRate: number;
+  refreshData: () => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -46,168 +66,255 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 export const useFinance = () => {
   const context = useContext(FinanceContext);
   if (!context) {
-    throw new Error('useFinance must be used within a FinanceProvider');
+    throw new Error("useFinance must be used within a FinanceProvider");
   }
   return context;
 };
 
-export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      date: '2025-01-20',
-      description: 'Salary Credit',
-      amount: 5000,
-      category: 'Salary',
-      type: 'income',
-      source: 'Bank SMS'
-    },
-    {
-      id: '2',
-      date: '2025-01-19',
-      description: 'Grocery Shopping',
-      amount: -120,
-      category: 'Food',
-      type: 'expense',
-      source: 'Card Transaction'
-    },
-    {
-      id: '3',
-      date: '2025-01-18',
-      description: 'Coffee Shop',
-      amount: -8.50,
-      category: 'Food',
-      type: 'expense',
-      source: 'Mobile Payment'
-    },
-    {
-      id: '4',
-      date: '2025-01-17',
-      description: 'Gas Station',
-      amount: -45,
-      category: 'Transportation',
-      type: 'expense',
-      source: 'Card Transaction'
-    },
-    {
-      id: '5',
-      date: '2025-01-16',
-      description: 'Freelance Project',
-      amount: 800,
-      category: 'Freelance',
-      type: 'income',
-      source: 'Bank Transfer'
-    },
-    {
-      id: '6',
-      date: '2025-01-15',
-      description: 'Netflix Subscription',
-      amount: -15.99,
-      category: 'Entertainment',
-      type: 'expense',
-      source: 'Auto-debit'
-    }
-  ]);
+export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { isAuthenticated } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [budgets, setBudgets] = useState<Budget[]>([
-    { id: '1', category: 'Food', limit: 500, spent: 128.50, period: 'monthly' },
-    { id: '2', category: 'Transportation', limit: 200, spent: 45, period: 'monthly' },
-    { id: '3', category: 'Entertainment', limit: 100, spent: 15.99, period: 'monthly' },
-    { id: '4', category: 'Shopping', limit: 300, spent: 0, period: 'monthly' }
-  ]);
-
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: '1',
-      title: 'Emergency Fund',
-      target: 10000,
-      current: 3500,
-      deadline: '2025-12-31',
-      category: 'Savings'
-    },
-    {
-      id: '2',
-      title: 'Vacation Fund',
-      target: 2000,
-      current: 450,
-      deadline: '2025-06-30',
-      category: 'Travel'
-    },
-    {
-      id: '3',
-      title: 'New Laptop',
-      target: 1500,
-      current: 800,
-      deadline: '2025-03-31',
-      category: 'Technology'
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      refreshData();
+    } else {
+      setTransactions([]);
+      setBudgets([]);
+      setGoals([]);
     }
-  ]);
+  }, [isAuthenticated]);
+
+  const refreshData = async () => {
+    if (!isAuthenticated) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const [transactionsRes, budgetsRes, goalsRes] = await Promise.all([
+        apiService.getTransactions({ limit: 100 }),
+        apiService.getBudgets(),
+        apiService.getGoals(),
+      ]);
+
+      if (transactionsRes.success) {
+        setTransactions(transactionsRes.data || []);
+      }
+
+      if (budgetsRes.success) {
+        setBudgets(budgetsRes.data || []);
+      }
+
+      if (goalsRes.success) {
+        setGoals(goalsRes.data || []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load data");
+      console.error("Error loading data:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const totalExpenses = Math.abs(transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0));
+  const totalExpenses = Math.abs(
+    transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0)
+  );
 
-  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+  const savingsRate =
+    totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction = {
-      ...transaction,
-      id: Date.now().toString()
-    };
-    setTransactions(prev => [newTransaction, ...prev]);
-    
-    // Update budget if it's an expense
-    if (transaction.type === 'expense') {
-      setBudgets(prev => prev.map(budget => 
-        budget.category === transaction.category
-          ? { ...budget, spent: budget.spent + Math.abs(transaction.amount) }
-          : budget
-      ));
+  const addTransaction = async (transaction: Omit<Transaction, "id">) => {
+    try {
+      const response = await apiService.createTransaction(transaction);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to create transaction");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create transaction"
+      );
+      throw err;
     }
   };
 
-  const updateBudget = (updatedBudget: Budget) => {
-    setBudgets(prev => prev.map(budget => 
-      budget.id === updatedBudget.id ? updatedBudget : budget
-    ));
+  const updateTransaction = async (
+    id: string,
+    transaction: Partial<Omit<Transaction, "id">>
+  ) => {
+    try {
+      const response = await apiService.updateTransaction(id, transaction);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to update transaction");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update transaction"
+      );
+      throw err;
+    }
   };
 
-  const addGoal = (goal: Omit<Goal, 'id'>) => {
-    const newGoal = {
-      ...goal,
-      id: Date.now().toString()
-    };
-    setGoals(prev => [...prev, newGoal]);
+  const deleteTransaction = async (id: string) => {
+    try {
+      const response = await apiService.deleteTransaction(id);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to delete transaction");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete transaction"
+      );
+      throw err;
+    }
   };
 
-  const updateGoal = (updatedGoal: Goal) => {
-    setGoals(prev => prev.map(goal => 
-      goal.id === updatedGoal.id ? updatedGoal : goal
-    ));
+  const addBudget = async (budget: Omit<Budget, "id">) => {
+    try {
+      const response = await apiService.createBudget(budget);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to create budget");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create budget");
+      throw err;
+    }
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+  const updateBudget = async (
+    id: string,
+    budget: Partial<Omit<Budget, "id">>
+  ) => {
+    try {
+      const response = await apiService.updateBudget(id, budget);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to update budget");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update budget");
+      throw err;
+    }
+  };
+
+  const deleteBudget = async (id: string) => {
+    try {
+      const response = await apiService.deleteBudget(id);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to delete budget");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete budget");
+      throw err;
+    }
+  };
+
+  const addGoal = async (goal: Omit<Goal, "id">) => {
+    try {
+      const response = await apiService.createGoal(goal);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to create goal");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create goal");
+      throw err;
+    }
+  };
+
+  const updateGoal = async (id: string, goal: Partial<Omit<Goal, "id">>) => {
+    try {
+      const response = await apiService.updateGoal(id, goal);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to update goal");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update goal");
+      throw err;
+    }
+  };
+
+  const deleteGoal = async (id: string) => {
+    try {
+      const response = await apiService.deleteGoal(id);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to delete goal");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete goal");
+      throw err;
+    }
+  };
+
+  const addContribution = async (goalId: string, amount: number) => {
+    try {
+      const response = await apiService.addContribution(goalId, amount);
+      if (response.success) {
+        await refreshData();
+      } else {
+        throw new Error(response.message || "Failed to add contribution");
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to add contribution"
+      );
+      throw err;
+    }
   };
 
   return (
-    <FinanceContext.Provider value={{
-      transactions,
-      budgets,
-      goals,
-      addTransaction,
-      updateBudget,
-      addGoal,
-      updateGoal,
-      deleteTransaction,
-      totalIncome,
-      totalExpenses,
-      savingsRate
-    }}>
+    <FinanceContext.Provider
+      value={{
+        transactions,
+        budgets,
+        goals,
+        isLoading,
+        error,
+        addTransaction,
+        updateTransaction,
+        deleteTransaction,
+        addBudget,
+        updateBudget,
+        deleteBudget,
+        addGoal,
+        updateGoal,
+        deleteGoal,
+        addContribution,
+        totalIncome,
+        totalExpenses,
+        savingsRate,
+        refreshData,
+      }}
+    >
       {children}
     </FinanceContext.Provider>
   );
