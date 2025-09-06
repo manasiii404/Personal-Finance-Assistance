@@ -5,7 +5,6 @@ import {
   CreateBudgetRequest, 
   UpdateBudgetRequest 
 } from '@/types';
-import { decimalToNumber, numberToDecimal } from '@/utils/helpers';
 import logger from '@/utils/logger';
 
 export class BudgetService {
@@ -29,8 +28,8 @@ export class BudgetService {
         data: {
           userId,
           category: data.category,
-          limit: numberToDecimal(data.limit),
-          spent: numberToDecimal(0),
+          limit: data.limit,
+          spent: 0,
           period: data.period.toUpperCase() as BudgetPeriod,
         },
       });
@@ -42,11 +41,7 @@ export class BudgetService {
         limit: data.limit 
       });
 
-      return {
-        ...budget,
-        limit: decimalToNumber(budget.limit),
-        spent: decimalToNumber(budget.spent),
-      };
+      return budget;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -70,11 +65,7 @@ export class BudgetService {
         orderBy: { category: 'asc' },
       });
 
-      return budgets.map(budget => ({
-        ...budget,
-        limit: decimalToNumber(budget.limit),
-        spent: decimalToNumber(budget.spent),
-      }));
+      return budgets;
     } catch (error) {
       logger.error('Error fetching budgets:', error);
       throw error;
@@ -95,11 +86,7 @@ export class BudgetService {
         throw createError('Budget not found', 404);
       }
 
-      return {
-        ...budget,
-        limit: decimalToNumber(budget.limit),
-        spent: decimalToNumber(budget.spent),
-      };
+      return budget;
     } catch (error) {
       throw error;
     }
@@ -140,18 +127,14 @@ export class BudgetService {
         where: { id: budgetId },
         data: {
           ...(data.category && { category: data.category }),
-          ...(data.limit && { limit: numberToDecimal(data.limit) }),
+          ...(data.limit && { limit: data.limit }),
           ...(data.period && { period: data.period.toUpperCase() as BudgetPeriod }),
         },
       });
 
       logger.info('Budget updated:', { budgetId, userId, updates: data });
 
-      return {
-        ...budget,
-        limit: decimalToNumber(budget.limit),
-        spent: decimalToNumber(budget.spent),
-      };
+      return budget;
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
@@ -199,18 +182,18 @@ export class BudgetService {
 
       const budgets = await prisma.budget.findMany({ where });
 
-      const totalBudget = budgets.reduce((sum, budget) => sum + decimalToNumber(budget.limit), 0);
-      const totalSpent = budgets.reduce((sum, budget) => sum + decimalToNumber(budget.spent), 0);
+      const totalBudget = budgets.reduce((sum, budget) => sum + budget.limit, 0);
+      const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
       const remainingBudget = totalBudget - totalSpent;
 
       // Get overspent budgets
       const overspentBudgets = budgets.filter(
-        budget => decimalToNumber(budget.spent) > decimalToNumber(budget.limit)
+        budget => budget.spent > budget.limit
       );
 
       // Get budgets near limit (>80%)
       const nearLimitBudgets = budgets.filter(budget => {
-        const percentage = (decimalToNumber(budget.spent) / decimalToNumber(budget.limit)) * 100;
+        const percentage = (budget.spent / budget.limit) * 100;
         return percentage > 80 && percentage <= 100;
       });
 
@@ -222,11 +205,9 @@ export class BudgetService {
         nearLimitCount: nearLimitBudgets.length,
         budgets: budgets.map(budget => ({
           ...budget,
-          limit: decimalToNumber(budget.limit),
-          spent: decimalToNumber(budget.spent),
-          percentage: (decimalToNumber(budget.spent) / decimalToNumber(budget.limit)) * 100,
-          isOverBudget: decimalToNumber(budget.spent) > decimalToNumber(budget.limit),
-          isNearLimit: (decimalToNumber(budget.spent) / decimalToNumber(budget.limit)) * 100 > 80,
+          percentage: (budget.spent / budget.limit) * 100,
+          isOverBudget: budget.spent > budget.limit,
+          isNearLimit: (budget.spent / budget.limit) * 100 > 80,
         })),
       };
     } catch (error) {
@@ -246,7 +227,7 @@ export class BudgetService {
       await prisma.budget.updateMany({
         where,
         data: {
-          spent: numberToDecimal(0),
+          spent: 0,
         },
       });
 
@@ -270,8 +251,8 @@ export class BudgetService {
       const alerts = [];
 
       for (const budget of budgets) {
-        const limit = decimalToNumber(budget.limit);
-        const spent = decimalToNumber(budget.spent);
+        const limit = budget.limit;
+        const spent = budget.spent;
         const percentage = (spent / limit) * 100;
 
         if (spent > limit) {

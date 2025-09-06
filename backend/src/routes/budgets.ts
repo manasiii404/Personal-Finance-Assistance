@@ -6,6 +6,12 @@ import {
   createBudgetSchema, 
   updateBudgetSchema 
 } from '@/utils/validation';
+import Joi from 'joi';
+
+// Create a separate schema for query validation
+const budgetPeriodSchema = Joi.object({
+  period: Joi.string().valid('weekly', 'monthly', 'quarterly', 'yearly').optional()
+});
 
 const router = Router();
 
@@ -19,7 +25,7 @@ router.post('/',
 );
 
 router.get('/', 
-  validateQuery(createBudgetSchema.pick({ period: true })),
+  validateQuery(budgetPeriodSchema),
   BudgetController.getBudgets
 );
 
@@ -38,7 +44,7 @@ router.delete('/:id',
 
 // Statistics and management
 router.get('/stats/overview', 
-  validateQuery(createBudgetSchema.pick({ period: true })),
+  validateQuery(budgetPeriodSchema),
   BudgetController.getBudgetStats
 );
 

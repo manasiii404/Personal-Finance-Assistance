@@ -6,7 +6,7 @@ import {
   UpdateGoalRequest,
   AddContributionRequest 
 } from '@/types';
-import { decimalToNumber, numberToDecimal, daysBetween } from '@/utils/helpers';
+import { daysBetween } from '@/utils/helpers';
 import logger from '@/utils/logger';
 
 export class GoalService {
@@ -17,8 +17,8 @@ export class GoalService {
         data: {
           userId,
           title: data.title,
-          target: numberToDecimal(data.target),
-          current: numberToDecimal(0),
+          target: data.target,
+          current: 0,
           deadline: new Date(data.deadline),
           category: data.category,
         },
@@ -31,11 +31,7 @@ export class GoalService {
         target: data.target 
       });
 
-      return {
-        ...goal,
-        target: decimalToNumber(goal.target),
-        current: decimalToNumber(goal.current),
-      };
+      return goal;
     } catch (error) {
       logger.error('Error creating goal:', error);
       throw error;
@@ -52,12 +48,10 @@ export class GoalService {
 
       return goals.map(goal => ({
         ...goal,
-        target: decimalToNumber(goal.target),
-        current: decimalToNumber(goal.current),
         daysLeft: daysBetween(new Date(), goal.deadline),
-        percentage: (decimalToNumber(goal.current) / decimalToNumber(goal.target)) * 100,
-        isCompleted: decimalToNumber(goal.current) >= decimalToNumber(goal.target),
-        isOverdue: new Date() > goal.deadline && decimalToNumber(goal.current) < decimalToNumber(goal.target),
+        percentage: (goal.current / goal.target) * 100,
+        isCompleted: goal.current >= goal.target,
+        isOverdue: new Date() > goal.deadline && goal.current < goal.target,
       }));
     } catch (error) {
       logger.error('Error fetching goals:', error);
@@ -81,12 +75,10 @@ export class GoalService {
 
       return {
         ...goal,
-        target: decimalToNumber(goal.target),
-        current: decimalToNumber(goal.current),
         daysLeft: daysBetween(new Date(), goal.deadline),
-        percentage: (decimalToNumber(goal.current) / decimalToNumber(goal.target)) * 100,
-        isCompleted: decimalToNumber(goal.current) >= decimalToNumber(goal.target),
-        isOverdue: new Date() > goal.deadline && decimalToNumber(goal.current) < decimalToNumber(goal.target),
+        percentage: (goal.current / goal.target) * 100,
+        isCompleted: goal.current >= goal.target,
+        isOverdue: new Date() > goal.deadline && goal.current < goal.target,
       };
     } catch (error) {
       throw error;
@@ -111,7 +103,7 @@ export class GoalService {
         where: { id: goalId },
         data: {
           ...(data.title && { title: data.title }),
-          ...(data.target && { target: numberToDecimal(data.target) }),
+          ...(data.target && { target: data.target }),
           ...(data.deadline && { deadline: new Date(data.deadline) }),
           ...(data.category && { category: data.category }),
         },
@@ -121,12 +113,10 @@ export class GoalService {
 
       return {
         ...goal,
-        target: decimalToNumber(goal.target),
-        current: decimalToNumber(goal.current),
         daysLeft: daysBetween(new Date(), goal.deadline),
-        percentage: (decimalToNumber(goal.current) / decimalToNumber(goal.target)) * 100,
-        isCompleted: decimalToNumber(goal.current) >= decimalToNumber(goal.target),
-        isOverdue: new Date() > goal.deadline && decimalToNumber(goal.current) < decimalToNumber(goal.target),
+        percentage: (goal.current / goal.target) * 100,
+        isCompleted: goal.current >= goal.target,
+        isOverdue: new Date() > goal.deadline && goal.current < goal.target,
       };
     } catch (error) {
       logger.error('Error updating goal:', error);
@@ -148,17 +138,17 @@ export class GoalService {
         throw createError('Goal not found', 404);
       }
 
-      const currentAmount = decimalToNumber(goal.current);
+      const currentAmount = goal.current;
       const newAmount = currentAmount + data.amount;
 
       const updatedGoal = await prisma.goal.update({
         where: { id: goalId },
         data: {
-          current: numberToDecimal(newAmount),
+          current: newAmount,
         },
       });
 
-      const isCompleted = newAmount >= decimalToNumber(goal.target);
+      const isCompleted = newAmount >= goal.target;
 
       logger.info('Contribution added to goal:', { 
         goalId, 
@@ -170,10 +160,8 @@ export class GoalService {
 
       return {
         ...updatedGoal,
-        target: decimalToNumber(updatedGoal.target),
-        current: decimalToNumber(updatedGoal.current),
         daysLeft: daysBetween(new Date(), updatedGoal.deadline),
-        percentage: (decimalToNumber(updatedGoal.current) / decimalToNumber(updatedGoal.target)) * 100,
+        percentage: (updatedGoal.current / updatedGoal.target) * 100,
         isCompleted,
         isOverdue: new Date() > updatedGoal.deadline && !isCompleted,
         contributionAdded: data.amount,
@@ -220,19 +208,17 @@ export class GoalService {
 
       const totalGoals = goals.length;
       const completedGoals = goals.filter(
-        goal => decimalToNumber(goal.current) >= decimalToNumber(goal.target)
+        goal => goal.current >= goal.target
       ).length;
-      const totalTarget = goals.reduce((sum, goal) => sum + decimalToNumber(goal.target), 0);
-      const totalCurrent = goals.reduce((sum, goal) => sum + decimalToNumber(goal.current), 0);
+      const totalTarget = goals.reduce((sum, goal) => sum + goal.target, 0);
+      const totalCurrent = goals.reduce((sum, goal) => sum + goal.current, 0);
       const overallProgress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
       // Goals by status
       const goalsByStatus = goals.map(goal => {
-        const current = decimalToNumber(goal.current);
-        const target = decimalToNumber(goal.target);
         const daysLeft = daysBetween(new Date(), goal.deadline);
-        const percentage = (current / target) * 100;
-        const isCompleted = current >= target;
+        const percentage = (goal.current / goal.target) * 100;
+        const isCompleted = goal.current >= goal.target;
         const isOverdue = new Date() > goal.deadline && !isCompleted;
 
         let status = 'on-track';
@@ -242,8 +228,6 @@ export class GoalService {
 
         return {
           ...goal,
-          target,
-          current,
           daysLeft,
           percentage,
           isCompleted,
@@ -276,11 +260,9 @@ export class GoalService {
       const alerts = [];
 
       for (const goal of goals) {
-        const current = decimalToNumber(goal.current);
-        const target = decimalToNumber(goal.target);
         const daysLeft = daysBetween(new Date(), goal.deadline);
-        const percentage = (current / target) * 100;
-        const isCompleted = current >= target;
+        const percentage = (goal.current / goal.target) * 100;
+        const isCompleted = goal.current >= goal.target;
         const isOverdue = new Date() > goal.deadline && !isCompleted;
 
         if (isCompleted) {
@@ -343,11 +325,11 @@ export class GoalService {
 
       return goals.map(group => ({
         category: group.category,
-        totalTarget: decimalToNumber(group._sum.target),
-        totalCurrent: decimalToNumber(group._sum.current),
+        totalTarget: group._sum.target || 0,
+        totalCurrent: group._sum.current || 0,
         goalCount: group._count.id,
-        progress: decimalToNumber(group._sum.target) > 0 
-          ? (decimalToNumber(group._sum.current) / decimalToNumber(group._sum.target)) * 100 
+        progress: (group._sum.target || 0) > 0 
+          ? ((group._sum.current || 0) / (group._sum.target || 0)) * 100 
           : 0,
       }));
     } catch (error) {

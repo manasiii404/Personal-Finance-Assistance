@@ -1,29 +1,32 @@
 import React, { useState } from "react";
-import { useFinance } from "../contexts/FinanceContext";
-import { useAlerts } from "../contexts/AlertContext";
-import apiService from "../services/api";
-import {
-  Plus,
-  Search,
-  Filter,
+import { 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  Calendar, 
+  Tag, 
+  CreditCard,
   Download,
   ArrowUpRight,
   ArrowDownLeft,
-  Trash2,
-  Edit,
-  Smartphone,
-  CreditCard,
-  Banknote,
+  Smartphone
 } from "lucide-react";
+import { useFinance } from "../contexts/FinanceContext";
+import { useAlerts } from "../contexts/AlertContext";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 export const Transactions: React.FC = () => {
   const { transactions, addTransaction, deleteTransaction } = useFinance();
   const { addAlert } = useAlerts();
+  const { formatAmount } = useCurrency();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSMSSimulator, setShowSMSSimulator] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
   // New transaction form state
   const [newTransaction, setNewTransaction] = useState({
@@ -34,19 +37,37 @@ export const Transactions: React.FC = () => {
     source: "Manual Entry",
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+
   // SMS Simulator state
   const [smsText, setSmsText] = useState("");
 
+  // Edit transaction form state
+  const [editTransaction, setEditTransaction] = useState({
+    description: "",
+    amount: "",
+    category: "",
+    type: "expense" as "income" | "expense",
+  });
+
   const categories = [
-    "Food",
+    "Food & Dining",
     "Transportation",
     "Entertainment",
     "Shopping",
-    "Bills",
+    "Bills & Utilities",
     "Healthcare",
+    "Education",
+    "Travel",
+    "Groceries",
+    "Rent",
+    "Insurance",
     "Salary",
     "Freelance",
     "Investment",
+    "Business",
+    "Gifts",
+    "Other",
   ];
 
   // Filter transactions
@@ -69,15 +90,28 @@ export const Transactions: React.FC = () => {
       !newTransaction.amount ||
       !newTransaction.category
     ) {
+      addAlert({
+        type: "error",
+        title: "Missing Information",
+        message: "Please fill in all required fields",
+      });
       return;
     }
 
+    setIsLoading(true);
     try {
       const amount = parseFloat(newTransaction.amount);
-      const transactionAmount =
-        newTransaction.type === "expense"
-          ? -Math.abs(amount)
-          : Math.abs(amount);
+      if (isNaN(amount) || amount <= 0) {
+        addAlert({
+          type: "error",
+          title: "Invalid Amount",
+          message: "Please enter a valid positive amount",
+        });
+        return;
+      }
+
+      // Ensure correct sign based on transaction type
+      const transactionAmount = newTransaction.type === "income" ? Math.abs(amount) : -Math.abs(amount);
 
       await addTransaction({
         ...newTransaction,
@@ -86,15 +120,21 @@ export const Transactions: React.FC = () => {
       });
 
       // Add alert for large transactions
-      if (Math.abs(amount) > 500) {
+      if (Math.abs(amount) > 5000) {
         addAlert({
           type: "info",
           title: "Large Transaction Added",
           message: `${
             newTransaction.type === "income" ? "Income" : "Expense"
-          } of $${amount.toFixed(2)} has been recorded`,
+          } of ${formatAmount(amount)} has been recorded`,
         });
       }
+
+      addAlert({
+        type: "success",
+        title: "Transaction Added",
+        message: `${newTransaction.type === "income" ? "Income" : "Expense"} of ${formatAmount(amount)} added successfully`,
+      });
 
       setNewTransaction({
         description: "",
@@ -106,48 +146,105 @@ export const Transactions: React.FC = () => {
       setShowAddModal(false);
     } catch (error) {
       console.error("Error adding transaction:", error);
-      // Error handling is done in the context
+      addAlert({
+        type: "error",
+        title: "Transaction Failed",
+        message: "Failed to add transaction. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const parseSMS = async () => {
-    if (!smsText.trim()) return;
+    if (!smsText.trim()) {
+      addAlert({
+        type: "error",
+        title: "Empty SMS",
+        message: "Please enter SMS text to parse",
+      });
+      return;
+    }
 
+    setIsLoading(true);
     try {
-      const response = await apiService.parseSMS(smsText);
-      if (response.success && response.data) {
-        const parsedData = response.data;
-
+      // Simple SMS parsing logic for demo
+      const smsLower = smsText.toLowerCase();
+      let amount = 0;
+      let type: "income" | "expense" = "expense";
+      let description = "SMS Transaction";
+      let category = "Other";
+      
+      // Extract amount using regex
+      const amountMatch = smsText.match(/(?:rs\.?|inr|₹)\s*([0-9,]+(?:\.[0-9]{2})?)/i) || 
+                         smsText.match(/([0-9,]+(?:\.[0-9]{2})?)\s*(?:rs\.?|inr|₹)/i);
+      
+      if (amountMatch) {
+        amount = parseFloat(amountMatch[1].replace(/,/g, ''));
+      }
+      
+      // Determine transaction type
+      if (smsLower.includes('credited') || smsLower.includes('received') || smsLower.includes('deposit')) {
+        type = "income";
+      } else if (smsLower.includes('debited') || smsLower.includes('spent') || smsLower.includes('paid')) {
+        type = "expense";
+      }
+      
+      // Determine category based on keywords
+      if (smsLower.includes('atm') || smsLower.includes('withdrawal')) {
+        category = "Other";
+        description = "ATM Withdrawal";
+      } else if (smsLower.includes('grocery') || smsLower.includes('supermarket')) {
+        category = "Groceries";
+        description = "Grocery Purchase";
+      } else if (smsLower.includes('fuel') || smsLower.includes('petrol') || smsLower.includes('gas')) {
+        category = "Transportation";
+        description = "Fuel Purchase";
+      } else if (smsLower.includes('restaurant') || smsLower.includes('food')) {
+        category = "Food & Dining";
+        description = "Restaurant/Food";
+      } else if (smsLower.includes('salary') || smsLower.includes('payroll')) {
+        category = "Salary";
+        description = "Salary Credit";
+        type = "income";
+      }
+      
+      if (amount > 0) {
+        const transactionAmount = type === "income" ? Math.abs(amount) : -Math.abs(amount);
+        
         await addTransaction({
-          description: parsedData.description,
-          amount: parsedData.amount,
-          category: parsedData.category,
-          type: parsedData.type,
-          source: parsedData.source,
+          description,
+          amount: transactionAmount,
+          category,
+          type,
+          source: "SMS Parser",
           date: new Date().toISOString().split("T")[0],
         });
 
         addAlert({
           type: "success",
           title: "SMS Transaction Parsed",
-          message: `Automatically added ${parsedData.type} of $${Math.abs(
-            parsedData.amount
-          ).toFixed(2)} from SMS (${Math.round(
-            parsedData.confidence * 100
-          )}% confidence)`,
+          message: `Automatically added ${type} of ₹${amount.toFixed(2)} from SMS`,
         });
 
         setSmsText("");
         setShowSMSSimulator(false);
+      } else {
+        addAlert({
+          type: "warning",
+          title: "Amount Not Found",
+          message: "Could not extract amount from SMS. Please add manually.",
+        });
       }
     } catch (error) {
       console.error("Error parsing SMS:", error);
       addAlert({
         type: "error",
         title: "SMS Parsing Failed",
-        message:
-          "Could not parse the SMS text. Please try again or add manually.",
+        message: "Could not parse the SMS text. Please try again or add manually.",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -181,27 +278,91 @@ export const Transactions: React.FC = () => {
     });
   };
 
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransaction(transaction);
+    setEditTransaction({
+      description: transaction.description,
+      amount: Math.abs(transaction.amount).toString(),
+      category: transaction.category,
+      type: transaction.amount > 0 ? "income" : "expense",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTransaction = async () => {
+    if (!editTransaction.description || !editTransaction.amount || !editTransaction.category) {
+      addAlert({
+        type: "error",
+        title: "Missing Information",
+        message: "Please fill in all required fields",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const amount = parseFloat(editTransaction.amount);
+      if (isNaN(amount) || amount <= 0) {
+        addAlert({
+          type: "error",
+          title: "Invalid Amount",
+          message: "Please enter a valid positive amount",
+        });
+        return;
+      }
+
+      const transactionAmount = editTransaction.type === "income" ? Math.abs(amount) : -Math.abs(amount);
+
+      // Since we don't have updateTransaction in context, we'll delete and add
+      await deleteTransaction(editingTransaction.id);
+      await addTransaction({
+        ...editTransaction,
+        amount: transactionAmount,
+        date: editingTransaction.date,
+        source: editingTransaction.source,
+      });
+
+      addAlert({
+        type: "success",
+        title: "Transaction Updated",
+        message: `Transaction updated successfully`,
+      });
+
+      setShowEditModal(false);
+      setEditingTransaction(null);
+    } catch (error) {
+      console.error("Error updating transaction:", error);
+      addAlert({
+        type: "error",
+        title: "Update Failed",
+        message: "Failed to update transaction. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Transactions</h1>
+          <p className="text-slate-600 mt-2 text-lg font-medium">
             Manage and track all your financial transactions
           </p>
         </div>
         <div className="flex space-x-3">
           <button
             onClick={() => setShowSMSSimulator(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+            className="btn-primary bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
           >
             <Smartphone className="h-4 w-4" />
             <span>Parse SMS</span>
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            className="btn-primary bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
           >
             <Plus className="h-4 w-4" />
             <span>Add Transaction</span>
@@ -210,7 +371,7 @@ export const Transactions: React.FC = () => {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="card-glass-blue p-8 glow-blue">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -219,14 +380,14 @@ export const Transactions: React.FC = () => {
               placeholder="Search transactions..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-premium w-full pl-10 pr-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
 
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="input-premium px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Categories</option>
             {categories.map((category) => (
@@ -239,7 +400,7 @@ export const Transactions: React.FC = () => {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="input-premium px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="all">All Types</option>
             <option value="income">Income</option>
@@ -248,7 +409,7 @@ export const Transactions: React.FC = () => {
 
           <button
             onClick={exportTransactions}
-            className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+            className="btn-secondary bg-white/80 backdrop-blur-sm text-slate-700 font-semibold py-3 px-6 rounded-xl border border-white/30 shadow-lg"
           >
             <Download className="h-4 w-4" />
             <span>Export</span>
@@ -257,26 +418,26 @@ export const Transactions: React.FC = () => {
       </div>
 
       {/* Transactions List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="card-ultra-glass glow-purple">
+        <div className="p-8 border-b border-white/20">
+          <h3 className="text-2xl font-bold text-gradient">
             Recent Transactions ({filteredTransactions.length})
           </h3>
         </div>
 
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-white/20">
           {filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="p-6 hover:bg-gray-50 transition-colors duration-200"
+              className="p-6 card-glass-indigo mx-4 my-2 rounded-2xl"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div
-                    className={`p-3 rounded-full ${
-                      transaction.type === "income"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-red-100 text-red-600"
+                    className={`p-6 rounded-2xl border-2 ${
+                      transaction.amount > 0
+                        ? "card-glass-green border-green-300/50"
+                        : "card-glass-orange border-red-300/50"
                     }`}
                   >
                     {transaction.type === "income" ? (
@@ -288,27 +449,26 @@ export const Transactions: React.FC = () => {
 
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <h4 className="font-semibold text-gray-900">
+                      <h4 className="font-bold text-slate-800 text-lg">
                         {transaction.description}
                       </h4>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/30 backdrop-blur-sm text-slate-700 border border-white/20">
                         {transaction.category}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-4 mt-1 text-sm text-gray-500">
-                      <span>
-                        {new Date(transaction.date).toLocaleDateString()}
+                    <div className="flex items-center space-x-2 text-sm text-slate-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>{new Date(transaction.date).toLocaleDateString()}</span>
+                      <Tag className="h-4 w-4 ml-4" />
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        transaction.amount > 0
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}>
+                        {transaction.category}
                       </span>
-                      <span className="flex items-center space-x-1">
-                        {transaction.source === "SMS Parsing" ? (
-                          <Smartphone className="h-3 w-3" />
-                        ) : transaction.source.includes("Card") ? (
-                          <CreditCard className="h-3 w-3" />
-                        ) : (
-                          <Banknote className="h-3 w-3" />
-                        )}
-                        <span>{transaction.source}</span>
-                      </span>
+                      <CreditCard className="h-4 w-4 ml-4" />
+                      <span className="text-xs text-slate-500">{transaction.source}</span>
                     </div>
                   </div>
                 </div>
@@ -316,26 +476,28 @@ export const Transactions: React.FC = () => {
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <p
-                      className={`text-xl font-bold ${
-                        transaction.type === "income"
-                          ? "text-green-600"
-                          : "text-red-600"
+                      className={`text-2xl font-bold ${
+                        transaction.amount > 0
+                          ? "text-gradient-green"
+                          : "text-gradient-warning"
                       }`}
                     >
-                      {transaction.type === "income" ? "+" : ""}$
-                      {Math.abs(transaction.amount).toFixed(2)}
+                      {transaction.amount > 0 ? "+" : ""}{formatAmount(transaction.amount)}
                     </p>
                   </div>
 
                   <div className="flex space-x-2">
-                    <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                      <Edit className="h-4 w-4" />
+                    <button 
+                      onClick={() => handleEditTransaction(transaction)}
+                      className="p-3 text-slate-500 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 hover:bg-white/30 transition-colors"
+                    >
+                      <Edit className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => deleteTransaction(transaction.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors duration-200"
+                      className="p-3 text-slate-500 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
@@ -347,15 +509,15 @@ export const Transactions: React.FC = () => {
 
       {/* Add Transaction Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card-ultra-glass p-8 w-full max-w-md mx-4 glow-blue">
+            <h3 className="text-2xl font-bold text-gradient mb-6">
               Add New Transaction
             </h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-2">
                   Description
                 </label>
                 <input
@@ -367,14 +529,14 @@ export const Transactions: React.FC = () => {
                       description: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter transaction description"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
                     Amount
                   </label>
                   <input
@@ -387,13 +549,13 @@ export const Transactions: React.FC = () => {
                         amount: e.target.value,
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
                     Type
                   </label>
                   <select
@@ -404,7 +566,7 @@ export const Transactions: React.FC = () => {
                         type: e.target.value as "income" | "expense",
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="expense">Expense</option>
                     <option value="income">Income</option>
@@ -413,7 +575,7 @@ export const Transactions: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-2">
                   Category
                 </label>
                 <select
@@ -424,7 +586,7 @@ export const Transactions: React.FC = () => {
                       category: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select Category</option>
                   {categories.map((category) => (
@@ -439,13 +601,124 @@ export const Transactions: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleAddTransaction}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                disabled={isLoading}
+                className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Transaction
+                {isLoading ? "Adding..." : "Add Transaction"}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                className="btn-secondary flex-1 bg-white/80 backdrop-blur-sm text-slate-700 font-semibold py-3 px-6 rounded-xl border border-white/30 shadow-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Transaction Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card-ultra-glass p-8 w-full max-w-md mx-4 glow-purple">
+            <h3 className="text-2xl font-bold text-gradient mb-6">
+              Edit Transaction
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={editTransaction.description}
+                  onChange={(e) =>
+                    setEditTransaction({
+                      ...editTransaction,
+                      description: e.target.value,
+                    })
+                  }
+                  className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter transaction description"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Amount
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editTransaction.amount}
+                    onChange={(e) =>
+                      setEditTransaction({
+                        ...editTransaction,
+                        amount: e.target.value,
+                      })
+                    }
+                    className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="0.00"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">
+                    Type
+                  </label>
+                  <select
+                    value={editTransaction.type}
+                    onChange={(e) =>
+                      setEditTransaction({
+                        ...editTransaction,
+                        type: e.target.value as "income" | "expense",
+                      })
+                    }
+                    className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  Category
+                </label>
+                <select
+                  value={editTransaction.category}
+                  onChange={(e) =>
+                    setEditTransaction({
+                      ...editTransaction,
+                      category: e.target.value,
+                    })
+                  }
+                  className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={handleUpdateTransaction}
+                disabled={isLoading}
+                className="btn-primary flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "Updating..." : "Update Transaction"}
+              </button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="btn-secondary flex-1 bg-white/80 backdrop-blur-sm text-slate-700 font-semibold py-3 px-6 rounded-xl border border-white/30 shadow-lg"
               >
                 Cancel
               </button>
@@ -456,35 +729,35 @@ export const Transactions: React.FC = () => {
 
       {/* SMS Simulator Modal */}
       {showSMSSimulator && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card-ultra-glass p-8 w-full max-w-md mx-4 glow-green">
+            <h3 className="text-2xl font-bold text-gradient-green mb-6">
               SMS Transaction Parser
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-slate-600 font-medium mb-6">
               Paste your bank SMS or notification text below to automatically
               extract transaction details.
             </p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-slate-700 mb-2">
                   SMS Text
                 </label>
                 <textarea
                   value={smsText}
                   onChange={(e) => setSmsText(e.target.value)}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Example: Your account has been debited by $25.00 for grocery shopping at SuperMart on 01/20/2025"
                 />
               </div>
 
-              <div className="bg-blue-50 rounded-lg p-3">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">
+              <div className="card-glass-green p-4">
+                <h4 className="text-sm font-bold text-emerald-800 mb-3">
                   Sample SMS formats:
                 </h4>
-                <div className="text-xs text-blue-700 space-y-1">
+                <div className="text-xs text-emerald-700 font-medium space-y-1">
                   <p>• "Account debited by $50.00 for fuel at Gas Station"</p>
                   <p>• "Salary credit of $3000.00 received"</p>
                   <p>• "ATM withdrawal of $100.00 at Branch ATM"</p>
@@ -495,13 +768,14 @@ export const Transactions: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={parseSMS}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                disabled={isLoading}
+                className="btn-primary flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Parse SMS
+                {isLoading ? "Parsing..." : "Parse SMS"}
               </button>
               <button
                 onClick={() => setShowSMSSimulator(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+                className="btn-secondary flex-1 bg-white/80 backdrop-blur-sm text-slate-700 font-semibold py-3 px-6 rounded-xl border border-white/30 shadow-lg"
               >
                 Cancel
               </button>

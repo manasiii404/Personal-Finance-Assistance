@@ -86,7 +86,7 @@ A comprehensive full-stack personal finance management application with AI-power
    Edit `.env` with your configuration:
 
    ```env
-   PORT=3001
+   PORT=3000
    DATABASE_URL="postgresql://username:password@localhost:5432/finance_db"
    JWT_SECRET="your-super-secret-jwt-key"
    JWT_EXPIRES_IN="7d"
@@ -107,7 +107,7 @@ A comprehensive full-stack personal finance management application with AI-power
    npm run dev
    ```
 
-   Backend will be available at `http://localhost:3001`
+   Backend will be available at `http://localhost:3000`
 
 ### Frontend Setup
 
@@ -132,7 +132,7 @@ A comprehensive full-stack personal finance management application with AI-power
    Edit `.env`:
 
    ```env
-   VITE_API_URL=http://localhost:3001/api
+   VITE_API_URL=http://localhost:3000/api
    ```
 
 4. **Start the development server**

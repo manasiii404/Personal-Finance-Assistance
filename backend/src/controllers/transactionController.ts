@@ -144,7 +144,7 @@ export class TransactionController {
       amount: parsedTransaction.amount 
     });
     
-    res.json({
+    return res.json({
       success: true,
       message: 'SMS parsed successfully',
       data: parsedTransaction,
@@ -201,7 +201,7 @@ export class TransactionController {
       res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
       
       const csvContent = [
-        result.headers.join(','),
+        result.headers?.join(',') || '',
         ...result.data.map(row => row.join(','))
       ].join('\n');
       

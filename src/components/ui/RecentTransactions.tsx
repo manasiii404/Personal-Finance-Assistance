@@ -19,12 +19,12 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
   return (
     <div className="space-y-3">
       {transactions.map((transaction) => (
-        <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+        <div key={transaction.id} className="flex items-center justify-between p-4 card-glass-blue hover:card-glass-purple transition-all duration-300 transform hover:scale-105">
           <div className="flex items-center space-x-3">
-            <div className={`p-2 rounded-full ${
+            <div className={`p-3 rounded-2xl backdrop-blur-sm border ${
               transaction.type === 'income' 
-                ? 'bg-green-100 text-green-600' 
-                : 'bg-red-100 text-red-600'
+                ? 'bg-gradient-to-br from-emerald-500/30 to-teal-500/30 text-emerald-600 border-emerald-300/30' 
+                : 'bg-gradient-to-br from-orange-500/30 to-red-500/30 text-orange-600 border-orange-300/30'
             }`}>
               {transaction.type === 'income' ? (
                 <ArrowUpRight className="h-4 w-4" />
@@ -33,17 +33,17 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
               )}
             </div>
             <div>
-              <p className="font-medium text-gray-900 text-sm">{transaction.description}</p>
-              <p className="text-xs text-gray-500">{transaction.category} • {transaction.source}</p>
+              <p className="font-bold text-slate-800 text-sm">{transaction.description}</p>
+              <p className="text-xs text-slate-600 font-medium">{transaction.category} • {transaction.source}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className={`font-semibold text-sm ${
-              transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+            <p className={`font-bold text-lg ${
+              transaction.type === 'income' ? 'text-gradient-green' : 'text-gradient-warning'
             }`}>
               {transaction.type === 'income' ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-slate-600 font-medium">
               {new Date(transaction.date).toLocaleDateString()}
             </p>
           </div>

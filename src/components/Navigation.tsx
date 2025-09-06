@@ -36,23 +36,23 @@ export const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <div className="fixed left-0 top-0 h-full w-64 bg-white shadow-lg border-r border-gray-200 z-50">
-      <div className="p-6 border-b border-gray-200">
+    <div className="fixed left-0 top-0 h-full w-64 sidebar-glass z-50 animate-slide-down">
+      <div className="p-6 border-b border-white/20">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-blue-600 rounded-lg">
+          <div className="p-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg">
             <Wallet className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Finance AI</h1>
-            <p className="text-sm text-gray-500">Smart Financial Planning</p>
+            <h1 className="text-xl font-display font-bold text-gradient">Finance AI</h1>
+            <p className="text-sm text-slate-600 font-medium">Smart Financial Planning</p>
           </div>
         </div>
         {user && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-900">
+          <div className="mt-4 p-4 card-glass">
+            <p className="text-sm font-semibold text-slate-800">
               {user.name || "User"}
             </p>
-            <p className="text-xs text-gray-500">{user.email}</p>
+            <p className="text-xs text-slate-600 font-medium">{user.email}</p>
           </div>
         )}
       </div>
@@ -67,22 +67,22 @@ export const Navigation: React.FC<NavigationProps> = ({
               <li key={item.id}>
                 <button
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-all duration-200 ${
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
                     isActive
-                      ? "bg-blue-50 text-blue-700 border border-blue-200"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl"
+                      : "text-slate-700 :bg-white/50 hover:text-slate-900 hover:shadow-lg"
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon
                       className={`h-5 w-5 ${
-                        isActive ? "text-blue-600" : "text-gray-400"
+                        isActive ? "text-white" : "text-slate-500"
                       }`}
                     />
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-semibold">{item.label}</span>
                   </div>
                   {item.badge && item.badge > 0 && (
-                    <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                    <span className="bg-gradient-to-r from-red-500 to-orange-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center font-bold shadow-lg animate-pulse">
                       {item.badge}
                     </span>
                   )}
@@ -93,13 +93,13 @@ export const Navigation: React.FC<NavigationProps> = ({
         </ul>
       </nav>
 
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/20">
         <button
           onClick={logout}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left text-slate-700 hover:bg-white/50 hover:text-red-600 transition-all duration-300 transform hover:scale-105"
         >
-          <LogOut className="h-5 w-5 text-gray-400" />
-          <span className="font-medium">Sign Out</span>
+          <LogOut className="h-5 w-5 text-slate-500" />
+          <span className="font-semibold">Sign Out</span>
         </button>
       </div>
     </div>

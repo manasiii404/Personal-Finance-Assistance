@@ -7,7 +7,7 @@ import {
   TransactionFilters,
   PaginatedResponse 
 } from '@/types';
-import { decimalToNumber, numberToDecimal, calculatePagination } from '@/utils/helpers';
+import { calculatePagination } from '@/utils/helpers';
 import logger from '@/utils/logger';
 
 export class TransactionService {
@@ -19,7 +19,7 @@ export class TransactionService {
           userId,
           date: new Date(data.date),
           description: data.description,
-          amount: numberToDecimal(data.amount),
+          amount: data.amount,
           category: data.category,
           type: data.type.toUpperCase() as TransactionType,
           source: data.source,
@@ -47,10 +47,7 @@ export class TransactionService {
         type: data.type 
       });
 
-      return {
-        ...transaction,
-        amount: decimalToNumber(transaction.amount),
-      };
+      return transaction;
     } catch (error) {
       logger.error('Error creating transaction:', error);
       throw error;
@@ -108,10 +105,7 @@ export class TransactionService {
       const pagination = calculatePagination(page, limit, total);
 
       return {
-        data: transactions.map(transaction => ({
-          ...transaction,
-          amount: decimalToNumber(transaction.amount),
-        })),
+        data: transactions,
         pagination,
       };
     } catch (error) {
@@ -143,10 +137,7 @@ export class TransactionService {
         throw createError('Transaction not found', 404);
       }
 
-      return {
-        ...transaction,
-        amount: decimalToNumber(transaction.amount),
-      };
+      return transaction;
     } catch (error) {
       throw error;
     }
@@ -177,7 +168,7 @@ export class TransactionService {
         data: {
           ...(data.date && { date: new Date(data.date) }),
           ...(data.description && { description: data.description }),
-          ...(data.amount && { amount: numberToDecimal(data.amount) }),
+          ...(data.amount && { amount: data.amount }),
           ...(data.category && { category: data.category }),
           ...(data.type && { type: data.type.toUpperCase() as TransactionType }),
           ...(data.source && { source: data.source }),
@@ -195,7 +186,7 @@ export class TransactionService {
 
       // Update budget if category or amount changed
       if (data.category || data.amount) {
-        const oldAmount = decimalToNumber(existingTransaction.amount);
+        const oldAmount = existingTransaction.amount;
         const newAmount = data.amount || oldAmount;
         const oldCategory = existingTransaction.category;
         const newCategory = data.category || oldCategory;
@@ -213,10 +204,7 @@ export class TransactionService {
 
       logger.info('Transaction updated:', { transactionId, userId, updates: data });
 
-      return {
-        ...transaction,
-        amount: decimalToNumber(transaction.amount),
-      };
+      return transaction;
     } catch (error) {
       logger.error('Error updating transaction:', error);
       throw error;
@@ -245,7 +233,7 @@ export class TransactionService {
 
       // Revert budget spending if it was an expense
       if (existingTransaction.type === 'EXPENSE') {
-        const amount = decimalToNumber(existingTransaction.amount);
+        const amount = existingTransaction.amount;
         await this.updateBudgetSpending(userId, existingTransaction.category, -Math.abs(amount));
       }
 
@@ -283,8 +271,8 @@ export class TransactionService {
         prisma.transaction.count({ where }),
       ]);
 
-      const income = decimalToNumber(totalIncome._sum.amount);
-      const expenses = Math.abs(decimalToNumber(totalExpenses._sum.amount));
+      const income = totalIncome._sum.amount || 0;
+      const expenses = Math.abs(totalExpenses._sum.amount || 0);
       const netIncome = income - expenses;
       const savingsRate = income > 0 ? ((income - expenses) / income) * 100 : 0;
 
@@ -324,15 +312,15 @@ export class TransactionService {
       });
 
       const totalExpenses = categorySpending.reduce(
-        (sum, item) => sum + Math.abs(decimalToNumber(item._sum.amount)),
+        (sum, item) => sum + Math.abs(item._sum.amount || 0),
         0
       );
 
       return categorySpending.map(item => ({
         category: item.category,
-        amount: Math.abs(decimalToNumber(item._sum.amount)),
+        amount: Math.abs(item._sum.amount || 0),
         percentage: totalExpenses > 0 
-          ? (Math.abs(decimalToNumber(item._sum.amount)) / totalExpenses) * 100 
+          ? (Math.abs(item._sum.amount || 0) / totalExpenses) * 100 
           : 0,
         transactionCount: item._count.id,
       }));
@@ -389,7 +377,7 @@ export class TransactionService {
         },
         data: {
           spent: {
-            increment: numberToDecimal(amount),
+            increment: amount,
           },
         },
       });

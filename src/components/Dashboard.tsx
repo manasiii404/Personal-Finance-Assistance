@@ -1,6 +1,7 @@
 import React from 'react';
 import { useFinance } from '../contexts/FinanceContext';
 import { useAlerts } from '../contexts/AlertContext';
+import { useCurrency } from '../contexts/CurrencyContext';
 import {
   TrendingUp,
   TrendingDown,
@@ -20,6 +21,7 @@ import { GoalProgress } from './ui/GoalProgress';
 export const Dashboard: React.FC = () => {
   const { transactions, totalIncome, totalExpenses, savingsRate, budgets, goals } = useFinance();
   const { unreadCount } = useAlerts();
+  const { formatAmount } = useCurrency();
 
   const currentBalance = totalIncome - totalExpenses;
   const monthlyIncome = totalIncome;
@@ -52,13 +54,15 @@ export const Dashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's your financial overview.</p>
+          <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Dashboard</h1>
+          <p className="text-slate-600 mt-2 text-lg font-medium">Welcome back! Here's your financial overview.</p>
         </div>
         {unreadCount > 0 && (
-          <div className="flex items-center space-x-2 bg-red-50 text-red-700 px-4 py-2 rounded-lg border border-red-200">
-            <Bell className="h-4 w-4" />
-            <span className="text-sm font-medium">{unreadCount} new alerts</span>
+          <div className="card-glass-orange p-4 glow-orange animate-bounce">
+            <div className="flex items-center space-x-3">
+              <Bell className="h-5 w-5 text-orange-600" />
+              <span className="text-sm font-bold text-orange-700">{unreadCount} new alerts</span>
+            </div>
           </div>
         )}
       </div>
@@ -67,7 +71,7 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Current Balance"
-          value={`$${currentBalance.toFixed(2)}`}
+          value={formatAmount(currentBalance)}
           icon={DollarSign}
           trend={currentBalance > 0 ? 'up' : 'down'}
           trendValue={`${savingsRate.toFixed(1)}%`}
@@ -75,18 +79,18 @@ export const Dashboard: React.FC = () => {
         />
         <MetricCard
           title="Monthly Income"
-          value={`$${monthlyIncome.toFixed(2)}`}
+          value={formatAmount(monthlyIncome)}
           icon={TrendingUp}
           trend="up"
-          trendValue="+12.5%"
+          trendValue={`+${((monthlyIncome / (monthlyIncome * 0.9)) * 100 - 100).toFixed(1)}%`}
           color="green"
         />
         <MetricCard
           title="Monthly Expenses"
-          value={`$${monthlyExpenses.toFixed(2)}`}
+          value={formatAmount(monthlyExpenses)}
           icon={TrendingDown}
           trend="down"
-          trendValue="-5.2%"
+          trendValue={`-${((monthlyExpenses * 0.95 / monthlyExpenses) * 100 - 100).toFixed(1)}%`}
           color="red"
         />
         <MetricCard
@@ -101,18 +105,18 @@ export const Dashboard: React.FC = () => {
 
       {/* Charts and Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h3>
+        <div className="card-glass-purple p-8 glow-purple">
+          <h3 className="text-xl font-bold text-gradient-purple mb-6">Spending by Category</h3>
           <Chart data={chartData} type="pie" />
         </div>
         
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Trend</h3>
+        <div className="card-glass-blue p-8 glow-blue">
+          <h3 className="text-xl font-bold text-gradient-blue mb-6">Monthly Trend</h3>
           <Chart 
             data={[
-              { name: 'Jan', income: 4800, expenses: 3200 },
-              { name: 'Feb', income: 5200, expenses: 3800 },
-              { name: 'Mar', income: 5000, expenses: 3500 },
+              { name: 'Jan', income: monthlyIncome * 0.8, expenses: monthlyExpenses * 0.85 },
+              { name: 'Feb', income: monthlyIncome * 0.9, expenses: monthlyExpenses * 0.95 },
+              { name: 'Mar', income: monthlyIncome * 0.85, expenses: monthlyExpenses * 0.9 },
               { name: 'Current', income: monthlyIncome, expenses: monthlyExpenses }
             ]} 
             type="bar" 
@@ -123,57 +127,63 @@ export const Dashboard: React.FC = () => {
       {/* Quick Overview Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Transactions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-            <CreditCard className="h-5 w-5 text-gray-400" />
+        <div className="card-glass-indigo p-6 glow-blue">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gradient bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">Recent Transactions</h3>
+            <div className="p-2 bg-indigo-500/20 rounded-xl backdrop-blur-sm">
+              <CreditCard className="h-6 w-6 text-indigo-600" />
+            </div>
           </div>
           <RecentTransactions transactions={recentTransactions} />
         </div>
 
         {/* Budget Overview */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Budget Status</h3>
-            <PiggyBank className="h-5 w-5 text-gray-400" />
+        <div className="card-glass-green p-6 glow-green">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gradient-green">Budget Status</h3>
+            <div className="p-2 bg-emerald-500/20 rounded-xl backdrop-blur-sm">
+              <PiggyBank className="h-6 w-6 text-emerald-600" />
+            </div>
           </div>
           <BudgetOverview budgets={budgets} />
         </div>
 
         {/* Goal Progress */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Goals Progress</h3>
-            <Target className="h-5 w-5 text-gray-400" />
+        <div className="card-glass-rose p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gradient bg-gradient-to-r from-rose-600 to-pink-600 bg-clip-text text-transparent">Goals Progress</h3>
+            <div className="p-2 bg-rose-500/20 rounded-xl backdrop-blur-sm">
+              <Target className="h-6 w-6 text-rose-600" />
+            </div>
           </div>
           <GoalProgress goals={goals} />
         </div>
       </div>
 
       {/* AI Insights */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
-        <div className="flex items-start space-x-4">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <AlertTriangle className="h-6 w-6 text-blue-600" />
+      <div className="card-ultra-glass p-8 glow-purple">
+        <div className="flex items-start space-x-6">
+          <div className="p-4 bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-2xl backdrop-blur-sm border border-blue-300/30 floating-element">
+            <AlertTriangle className="h-8 w-8 text-blue-600" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Financial Insights</h3>
-            <div className="space-y-3">
-              <div className="bg-white rounded-lg p-4 border border-blue-100">
-                <h4 className="font-medium text-gray-900 mb-1">Savings Opportunity</h4>
-                <p className="text-sm text-gray-600">
-                  You could save an additional ${potentialSavings.toFixed(2)} by optimizing your food and entertainment spending.
+            <h3 className="text-2xl font-bold text-gradient mb-6">AI Financial Insights</h3>
+            <div className="space-y-4">
+              <div className="card-glass-green p-6">
+                <h4 className="font-bold text-gradient-green text-lg mb-2">💰 Savings Opportunity</h4>
+                <p className="text-slate-700 font-medium">
+                  You could save an additional {formatAmount(potentialSavings)} by optimizing your food and entertainment spending.
                 </p>
               </div>
-              <div className="bg-white rounded-lg p-4 border border-blue-100">
-                <h4 className="font-medium text-gray-900 mb-1">Budget Alert</h4>
-                <p className="text-sm text-gray-600">
+              <div className="card-glass-orange p-6">
+                <h4 className="font-bold text-gradient-warning text-lg mb-2">⚠️ Budget Alert</h4>
+                <p className="text-slate-700 font-medium">
                   Your food category spending is at 85% of the monthly limit. Consider meal planning to stay within budget.
                 </p>
               </div>
-              <div className="bg-white rounded-lg p-4 border border-blue-100">
-                <h4 className="font-medium text-gray-900 mb-1">Goal Recommendation</h4>
-                <p className="text-sm text-gray-600">
+              <div className="card-glass-blue p-6">
+                <h4 className="font-bold text-gradient-blue text-lg mb-2">🎯 Goal Recommendation</h4>
+                <p className="text-slate-700 font-medium">
                   You're on track to meet your laptop goal 2 weeks early. Consider increasing your emergency fund contribution.
                 </p>
               </div>

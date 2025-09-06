@@ -44,43 +44,43 @@ export const Auth: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4 animate-fade-in">
+      <div className="card-premium w-full max-w-md animate-scale-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <User className="h-8 w-8 text-blue-600" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-premium-gradient rounded-2xl mb-6 shadow-glow animate-bounce-subtle">
+            <User className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-3xl font-display font-bold text-gradient mb-2">
             {isLogin ? "Welcome Back" : "Create Account"}
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-dark-600 font-medium text-lg">
             {isLogin
-              ? "Sign in to your account"
-              : "Get started with your financial journey"}
+              ? "Sign in to your financial dashboard"
+              : "Start your premium financial journey"}
           </p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-center space-x-2">
-            <AlertCircle className="h-5 w-5 text-red-600" />
-            <span className="text-red-700 text-sm">{error}</span>
+          <div className="bg-error-gradient/10 border border-error-300 rounded-xl p-4 mb-6 flex items-center space-x-3 animate-slide-down">
+            <AlertCircle className="h-5 w-5 text-error-600" />
+            <span className="text-error-700 font-medium">{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="animate-slide-up">
+              <label className="block text-sm font-semibold text-dark-700 mb-3">
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
                 <input
                   type="text"
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-premium w-full pl-12 pr-4 py-4 font-medium"
                   placeholder="Enter your full name"
                   required={!isLogin}
                 />
@@ -88,36 +88,36 @@ export const Auth: React.FC = () => {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="animate-slide-up">
+            <label className="block text-sm font-semibold text-dark-700 mb-3">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-premium w-full pl-12 pr-4 py-4 font-medium"
                 placeholder="Enter your email"
                 required
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="animate-slide-up">
+            <label className="block text-sm font-semibold text-dark-700 mb-3">
               Password
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-premium w-full pl-12 pr-14 py-4 font-medium"
                 placeholder="Enter your password"
                 required
                 minLength={6}
@@ -125,7 +125,7 @@ export const Auth: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-primary-500 hover:text-primary-700 transition-colors"
               >
                 {showPassword ? (
                   <EyeOff className="h-5 w-5" />
@@ -137,18 +137,18 @@ export const Auth: React.FC = () => {
           </div>
 
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="animate-slide-up">
+              <label className="block text-sm font-semibold text-dark-700 mb-3">
                 Confirm Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="input-premium w-full pl-12 pr-4 py-4 font-medium"
                   placeholder="Confirm your password"
                   required={!isLogin}
                 />
@@ -159,11 +159,11 @@ export const Auth: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+            className="btn-primary w-full py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {loading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 <span>{isLogin ? "Signing In..." : "Creating Account..."}</span>
               </div>
             ) : isLogin ? (
@@ -174,8 +174,8 @@ export const Auth: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
+        <div className="mt-8 text-center">
+          <p className="text-dark-600 font-medium">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
             <button
               onClick={() => {
@@ -188,17 +188,19 @@ export const Auth: React.FC = () => {
                   confirmPassword: "",
                 });
               }}
-              className="ml-2 text-blue-600 hover:text-blue-700 font-medium"
+              className="ml-2 text-gradient font-bold hover:scale-105 transition-transform"
             >
               {isLogin ? "Sign up" : "Sign in"}
             </button>
           </p>
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
-            Demo credentials: demo@example.com / demo123
-          </p>
+        <div className="mt-6 text-center">
+          <div className="card-glass p-3 rounded-xl">
+            <p className="text-xs text-dark-600 font-medium">
+              Demo credentials: demo@example.com / demo123
+            </p>
+          </div>
         </div>
       </div>
     </div>

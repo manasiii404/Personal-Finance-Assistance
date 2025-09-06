@@ -4,6 +4,12 @@ import { authenticateToken } from '@/middleware/auth';
 import { validateQuery } from '@/middleware/validation';
 import { exportLimiter } from '@/middleware/rateLimiter';
 import { analyticsFiltersSchema } from '@/utils/validation';
+import Joi from 'joi';
+
+// Create a separate schema for monthly trends validation
+const monthsSchema = Joi.object({
+  months: Joi.number().integer().min(1).max(24).optional()
+});
 
 const router = Router();
 
@@ -26,7 +32,7 @@ router.get('/goal-recommendations',
 );
 
 router.get('/monthly-trends', 
-  validateQuery(analyticsFiltersSchema.pick({ months: true })),
+  validateQuery(monthsSchema),
   AnalyticsController.getMonthlyTrends
 );
 

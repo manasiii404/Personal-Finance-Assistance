@@ -1,26 +1,28 @@
 import React, { useState } from "react";
-import { useAlerts } from "../contexts/AlertContext";
-import { useAuth } from "../contexts/AuthContext";
-import {
-  User,
-  Bell,
-  Shield,
-  Smartphone,
+import { 
+  User, 
+  Bell, 
+  Shield, 
+  Smartphone, 
+  Database, 
+  Download, 
+  Save, 
+  Eye, 
+  EyeOff,
+  Trash2,
   Mail,
   MessageSquare,
   CreditCard,
-  Database,
-  Download,
-  Upload,
-  Trash2,
-  Save,
-  Eye,
-  EyeOff,
+  Upload
 } from "lucide-react";
+import { useAlerts } from "../contexts/AlertContext";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { useAuth } from "../contexts/AuthContext";
 
 export const Settings: React.FC = () => {
   const { addAlert } = useAlerts();
   const { user, updateProfile, changePassword, deleteAccount } = useAuth();
+  const { currency, setCurrency } = useCurrency();
   const [activeTab, setActiveTab] = useState("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,9 +31,8 @@ export const Settings: React.FC = () => {
   const [profile, setProfile] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    phone: "+1 (555) 123-4567",
-    timezone: "America/New_York",
-    currency: "USD",
+    timezone: "Asia/Kolkata",
+    currency: currency,
   });
 
   // Notification settings
@@ -79,6 +80,15 @@ export const Settings: React.FC = () => {
         name: profile.name,
         email: profile.email,
       });
+
+      // Update currency context when currency changes
+      setCurrency(profile.currency);
+
+      // Save to localStorage for immediate use
+      localStorage.setItem('userPreferences', JSON.stringify({
+        currency: profile.currency,
+        timezone: profile.timezone
+      }));
 
       addAlert({
         type: "success",
@@ -250,19 +260,6 @@ export const Settings: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, phone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
               </div>
             </div>
 
@@ -282,6 +279,7 @@ export const Settings: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
+                    <option value="Asia/Kolkata">India Standard Time (IST)</option>
                     <option value="America/New_York">Eastern Time</option>
                     <option value="America/Chicago">Central Time</option>
                     <option value="America/Denver">Mountain Time</option>
@@ -299,6 +297,7 @@ export const Settings: React.FC = () => {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
+                    <option value="INR">Indian Rupee (₹)</option>
                     <option value="USD">US Dollar (USD)</option>
                     <option value="EUR">Euro (EUR)</option>
                     <option value="GBP">British Pound (GBP)</option>
@@ -903,14 +902,14 @@ export const Settings: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">Settings</h1>
+        <p className="text-slate-600 mt-2 text-lg font-medium">
           Manage your account preferences and system configuration
         </p>
       </div>
 
       {/* Settings Navigation */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="card-ultra-glass glow-purple">
         <div className="border-b border-gray-200">
           <nav className="flex space-x-8 px-6" aria-label="Settings Navigation">
             {tabs.map((tab) => {

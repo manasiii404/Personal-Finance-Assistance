@@ -50,8 +50,8 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">${total.toFixed(0)}</p>
-              <p className="text-sm text-gray-500">Total</p>
+              <p className="text-2xl font-bold text-gradient">${total.toFixed(0)}</p>
+              <p className="text-sm text-slate-600 font-medium">Total</p>
             </div>
           </div>
         </div>
@@ -62,8 +62,8 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: colors[index % colors.length] }}
               />
-              <span className="text-sm text-gray-600">{item.name}</span>
-              <span className="text-sm font-medium text-gray-900">
+              <span className="text-sm text-slate-700 font-medium">{item.name}</span>
+              <span className="text-sm font-bold text-slate-800">
                 ${(item.value || 0).toFixed(0)}
               </span>
             </div>
@@ -84,29 +84,29 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
           <div key={item.name} className="flex flex-col items-center space-y-2 flex-1">
             <div className="flex space-x-1 items-end h-48">
               {item.income && (
-                <div className="bg-green-500 rounded-t-md relative group min-w-[20px]">
+                <div className="bg-gradient-to-t from-emerald-500 to-teal-400 rounded-t-md relative group min-w-[20px] shadow-lg">
                   <div 
-                    className="bg-green-500 rounded-t-md transition-all duration-500"
+                    className="bg-gradient-to-t from-emerald-500 to-teal-400 rounded-t-md transition-all duration-500"
                     style={{ height: `${(item.income / maxValue) * 192}px` }}
                   />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 card-glass-green text-slate-800 text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold">
                     Income: ${item.income.toFixed(0)}
                   </div>
                 </div>
               )}
               {item.expenses && (
-                <div className="bg-red-500 rounded-t-md relative group min-w-[20px]">
+                <div className="bg-gradient-to-t from-orange-500 to-red-400 rounded-t-md relative group min-w-[20px] shadow-lg">
                   <div 
-                    className="bg-red-500 rounded-t-md transition-all duration-500"
+                    className="bg-gradient-to-t from-orange-500 to-red-400 rounded-t-md transition-all duration-500"
                     style={{ height: `${(item.expenses / maxValue) * 192}px` }}
                   />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 card-glass-orange text-slate-800 text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold">
                     Expenses: ${item.expenses.toFixed(0)}
                   </div>
                 </div>
               )}
             </div>
-            <span className="text-xs text-gray-600 font-medium">{item.name}</span>
+            <span className="text-xs text-slate-700 font-bold">{item.name}</span>
           </div>
         ))}
       </div>

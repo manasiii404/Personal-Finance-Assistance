@@ -69,6 +69,13 @@ export const createAlertSchema = Joi.object({
   actionUrl: Joi.string().uri().optional(),
 });
 
+export const alertFiltersSchema = Joi.object({
+  unreadOnly: Joi.boolean().optional(),
+  type: Joi.string().valid('warning', 'success', 'info', 'error').optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(100).default(10),
+});
+
 // Auth validation schemas
 export const loginSchema = Joi.object({
   email: Joi.string().email().required(),

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { AlertController } from '@/controllers/alertController';
 import { authenticateToken } from '@/middleware/auth';
 import { validate, validateQuery } from '@/middleware/validation';
-import { createAlertSchema } from '@/utils/validation';
+import { createAlertSchema, alertFiltersSchema } from '@/utils/validation';
 
 const router = Router();
 
@@ -10,38 +10,38 @@ const router = Router();
 router.use(authenticateToken);
 
 // Alert CRUD operations
-router.post('/', 
+router.post('/',
   validate(createAlertSchema),
   AlertController.createAlert
 );
 
-router.get('/', 
-  validateQuery(createAlertSchema.pick({ unreadOnly: true })),
+router.get('/',
+  validateQuery(alertFiltersSchema),
   AlertController.getAlerts
 );
 
-router.get('/:id', 
+router.get('/:id',
   AlertController.getAlertById
 );
 
-router.put('/:id/read', 
+router.put('/:id/read',
   AlertController.markAsRead
 );
 
-router.put('/read-all', 
+router.put('/read-all',
   AlertController.markAllAsRead
 );
 
-router.delete('/:id', 
+router.delete('/:id',
   AlertController.deleteAlert
 );
 
-router.delete('/clear-all', 
+router.delete('/clear-all',
   AlertController.clearAllAlerts
 );
 
 // Statistics
-router.get('/stats/unread-count', 
+router.get('/stats/unread-count',
   AlertController.getUnreadCount
 );
 

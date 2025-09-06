@@ -6,12 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   email     String   @unique
   password  String
   name      String?
@@ -28,11 +28,11 @@ model User {
 }
 
 model Transaction {
-  id          String   @id @default(cuid())
-  userId      String
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
   date        DateTime
   description String
-  amount      Decimal  @db.Decimal(10, 2)
+  amount      Float
   category    String
   type        TransactionType
   source      String
@@ -46,11 +46,11 @@ model Transaction {
 }
 
 model Budget {
-  id     String   @id @default(cuid())
-  userId String
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId String   @db.ObjectId
   category String
-  limit   Decimal @db.Decimal(10, 2)
-  spent   Decimal @db.Decimal(10, 2) @default(0)
+  limit   Float
+  spent   Float @default(0)
   period  BudgetPeriod
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -62,11 +62,11 @@ model Budget {
 }
 
 model Goal {
-  id       String   @id @default(cuid())
-  userId   String
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String   @db.ObjectId
   title    String
-  target   Decimal  @db.Decimal(10, 2)
-  current  Decimal  @db.Decimal(10, 2) @default(0)
+  target   Float
+  current  Float @default(0)
   deadline DateTime
   category String
   createdAt DateTime @default(now())
@@ -79,8 +79,8 @@ model Goal {
 }
 
 model Alert {
-  id        String      @id @default(cuid())
-  userId    String
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String      @db.ObjectId
   type      AlertType
   title     String
   message   String
@@ -96,7 +96,7 @@ model Alert {
 }
 
 model Category {
-  id          String   @id @default(cuid())
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String   @unique
   type        CategoryType
   description String?

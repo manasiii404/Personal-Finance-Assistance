@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Dashboard } from "./components/Dashboard";
 import { Transactions } from "./components/Transactions";
 import { Budget } from "./components/Budget";
@@ -11,6 +11,7 @@ import { Auth } from "./components/Auth";
 import { AlertProvider } from "./contexts/AlertContext";
 import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,10 +40,11 @@ const AppContent: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto mb-6 shadow-glow" />
+          <h2 className="text-2xl font-display font-semibold text-gradient mb-2">Loading</h2>
+          <p className="text-dark-600 font-medium">Preparing your financial dashboard...</p>
         </div>
       </div>
     );
@@ -53,14 +55,16 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <FinanceProvider>
-      <AlertProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-          <main className="ml-64 p-6">{renderActiveComponent()}</main>
-        </div>
-      </AlertProvider>
-    </FinanceProvider>
+    <CurrencyProvider>
+      <FinanceProvider>
+        <AlertProvider>
+          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+            <main className="ml-64 p-8 animate-fade-in">{renderActiveComponent()}</main>
+          </div>
+        </AlertProvider>
+      </FinanceProvider>
+    </CurrencyProvider>
   );
 };
 

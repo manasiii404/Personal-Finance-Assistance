@@ -60,7 +60,7 @@ A comprehensive backend API for personal finance management built with Node.js, 
    ```env
    DATABASE_URL="postgresql://username:password@localhost:5432/personal_finance_db"
    JWT_SECRET="your-super-secret-jwt-key-here"
-   PORT=3001
+   PORT=3000
    NODE_ENV="development"
    FRONTEND_URL="http://localhost:5173"
    OPENAI_API_KEY="your-openai-api-key" # Optional
@@ -84,14 +84,14 @@ A comprehensive backend API for personal finance management built with Node.js, 
    npm run dev
    ```
 
-The API will be available at `http://localhost:3001`
+The API will be available at `http://localhost:3000`
 
 ## API Documentation
 
 ### Base URL
 
 ```
-http://localhost:3001/api
+http://localhost:3000/api
 ```
 
 ### Authentication

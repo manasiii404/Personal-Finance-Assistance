@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { Prisma } from '@prisma/client';
 import { config } from '@/config/env';
 import prisma from '@/config/database';
@@ -44,7 +44,7 @@ export class AuthService {
       const token = jwt.sign(
         { userId: user.id },
         config.jwtSecret,
-        { expiresIn: config.jwtExpiresIn }
+        { expiresIn: '7d' }
       );
 
       logger.info('User registered successfully:', { userId: user.id, email: user.email });
@@ -66,18 +66,22 @@ export class AuthService {
   // Login user
   static async login(data: LoginRequest): Promise<AuthResponse> {
     try {
+      logger.info('Login attempt:', { email: data.email });
+      
       // Find user by email
       const user = await prisma.user.findUnique({
         where: { email: data.email },
       });
 
       if (!user) {
+        logger.warn('Login failed - user not found:', { email: data.email });
         throw createError('Invalid email or password', 401);
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(data.password, user.password);
       if (!isPasswordValid) {
+        logger.warn('Login failed - invalid password:', { email: data.email });
         throw createError('Invalid email or password', 401);
       }
 
@@ -85,7 +89,7 @@ export class AuthService {
       const token = jwt.sign(
         { userId: user.id },
         config.jwtSecret,
-        { expiresIn: config.jwtExpiresIn }
+        { expiresIn: '7d' }
       );
 
       logger.info('User logged in successfully:', { userId: user.id, email: user.email });
@@ -101,6 +105,11 @@ export class AuthService {
         token,
       };
     } catch (error) {
+      logger.error('Login error:', error);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        logger.error('Prisma error details:', { code: error.code, message: error.message });
+        throw createError('Database operation failed', 500);
+      }
       throw error;
     }
   }
