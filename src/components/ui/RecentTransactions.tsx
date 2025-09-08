@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface Transaction {
   id: string;
@@ -16,6 +17,7 @@ interface RecentTransactionsProps {
 }
 
 export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transactions }) => {
+  const { formatAmount } = useCurrency();
   return (
     <div className="space-y-3">
       {transactions.map((transaction) => (
@@ -33,17 +35,17 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
               )}
             </div>
             <div>
-              <p className="font-bold text-slate-800 text-sm">{transaction.description}</p>
-              <p className="text-xs text-slate-600 font-medium">{transaction.category} • {transaction.source}</p>
+              <p className="font-bold text-slate-900 text-sm">{transaction.description}</p>
+              <p className="text-xs text-slate-900 font-bold">{transaction.category} • {transaction.source}</p>
             </div>
           </div>
           <div className="text-right">
             <p className={`font-bold text-lg ${
               transaction.type === 'income' ? 'text-gradient-green' : 'text-gradient-warning'
             }`}>
-              {transaction.type === 'income' ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+              {transaction.type === 'income' ? '+' : ''}{formatAmount(Math.abs(transaction.amount))}
             </p>
-            <p className="text-xs text-slate-600 font-medium">
+            <p className="text-xs text-slate-900 font-bold">
               {new Date(transaction.date).toLocaleDateString()}
             </p>
           </div>

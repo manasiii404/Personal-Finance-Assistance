@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Plus,
   Edit,
@@ -15,9 +15,10 @@ import {
 import { useFinance } from "../contexts/FinanceContext";
 import { useAlerts } from "../contexts/AlertContext";
 import { useCurrency } from "../contexts/CurrencyContext";
+import { Chart } from "./ui/Chart";
 
 export const Budget: React.FC = () => {
-  const { budgets, updateBudget, addBudget } = useFinance();
+  const { budgets, updateBudget, addBudget, transactions } = useFinance();
   const { addAlert } = useAlerts();
   const { formatAmount } = useCurrency();
   const [showAddModal, setShowAddModal] = useState(false);
@@ -42,6 +43,19 @@ export const Budget: React.FC = () => {
     "Other",
   ];
 
+  // Real-time budget calculation from transactions
+  useEffect(() => {
+    budgets.forEach(budget => {
+      const categoryExpenses = transactions
+        .filter(t => t.category === budget.category && t.amount < 0)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      
+      if (categoryExpenses !== budget.spent) {
+        updateBudget(budget.id, { ...budget, spent: categoryExpenses });
+      }
+    });
+  }, [transactions, budgets, updateBudget]);
+
   // Calculate budget insights
   const totalBudget = budgets
     .filter((b) => b.period === selectedPeriod)
@@ -50,6 +64,14 @@ export const Budget: React.FC = () => {
     .filter((b) => b.period === selectedPeriod)
     .reduce((sum, b) => sum + b.spent, 0);
   const remainingBudget = totalBudget - totalSpent;
+
+  // Budget chart data
+  const budgetChartData = budgets
+    .filter(b => b.period === selectedPeriod)
+    .map(budget => ({
+      name: budget.category,
+      value: budget.spent
+    }));
 
   // Get overspent budgets
   const overspentBudgets = budgets.filter(
@@ -64,6 +86,20 @@ export const Budget: React.FC = () => {
 
   const handleAddBudget = async () => {
     if (!newBudget.category || !newBudget.limit) return;
+
+    // Check if budget already exists for this category and period
+    const existingBudget = budgets.find(
+      b => b.category === newBudget.category && b.period === newBudget.period
+    );
+
+    if (existingBudget) {
+      addAlert({
+        type: "error",
+        title: "Budget Already Exists",
+        message: `A ${newBudget.period} budget for ${newBudget.category} already exists. Please edit the existing budget or choose a different category.`,
+      });
+      return;
+    }
 
     try {
       await addBudget({
@@ -83,7 +119,11 @@ export const Budget: React.FC = () => {
       setShowAddModal(false);
     } catch (error) {
       console.error("Error adding budget:", error);
-      // Error handling is done in the context
+      addAlert({
+        type: "error",
+        title: "Failed to Create Budget",
+        message: "There was an error creating the budget. Please try again.",
+      });
     }
   };
 
@@ -122,7 +162,7 @@ export const Budget: React.FC = () => {
           <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-purple-600 via-blue-600 to-emerald-600 bg-clip-text text-transparent">
             Budget Management
           </h1>
-          <p className="text-slate-300 mt-2 text-lg">
+          <p className="text-slate-900 mt-2 text-lg font-bold">
             Set limits and track your spending across categories
           </p>
         </div>
@@ -138,7 +178,7 @@ export const Budget: React.FC = () => {
       {/* Period Filter */}
       <div className="card-glass-purple p-6 glow-purple">
         <div className="flex items-center space-x-4">
-          <span className="text-sm font-bold text-slate-200">
+          <span className="text-sm font-bold text-slate-900">
             Budget Period:
           </span>
           <div className="flex space-x-2">
@@ -149,7 +189,7 @@ export const Budget: React.FC = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
                   selectedPeriod === period
                     ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg glow-purple"
-                    : "bg-white/20 backdrop-blur-sm text-slate-300 border border-white/20"
+                    : "bg-white/20 backdrop-blur-sm text-slate-900 border border-white/20"
                 }`}
               >
                 {period.charAt(0).toUpperCase() + period.slice(1)}
@@ -164,7 +204,7 @@ export const Budget: React.FC = () => {
         <div className="card-glass-blue p-6 glow-blue">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">Total Budget</p>
+              <p className="text-sm font-bold text-slate-900">Total Budget</p>
               <p className="text-3xl font-bold text-gradient bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 {formatAmount(totalBudget)}
               </p>
@@ -178,13 +218,13 @@ export const Budget: React.FC = () => {
         <div className="card-glass-orange p-6 glow-orange">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">Total Spent</p>
+              <p className="text-sm font-bold text-slate-900">Total Spent</p>
               <p className="text-3xl font-bold text-gradient bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">
                 {formatAmount(totalSpent)}
               </p>
               <div className="flex items-center space-x-1 mt-1">
                 <TrendingUp className="h-5 w-5 text-red-400" />
-                <span className="text-sm text-red-300 font-semibold">
+                <span className="text-sm text-red-600 font-bold">
                   {totalBudget > 0
                     ? ((totalSpent / totalBudget) * 100).toFixed(1)
                     : 0}
@@ -201,7 +241,7 @@ export const Budget: React.FC = () => {
         <div className="card-glass-green p-6 glow-green">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">Remaining</p>
+              <p className="text-sm font-bold text-slate-900">Remaining</p>
               <p
                 className={`text-3xl font-bold text-gradient ${
                   remainingBudget >= 0 ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-red-400 to-pink-400"
@@ -254,9 +294,8 @@ export const Budget: React.FC = () => {
                     key={budget.id}
                     className="bg-red-500/20 backdrop-blur-sm rounded-xl p-4 border border-red-400/30 glow-red"
                   >
-                    <p className="text-sm text-red-200 font-semibold">
-                      <strong>{budget.category}</strong> is over budget by $
-                      {(budget.spent - budget.limit).toFixed(2)}
+                    <p className="text-sm text-red-900 font-bold">
+                      <strong>{budget.category}</strong> is over budget by {formatAmount(budget.spent - budget.limit)}
                     </p>
                   </div>
                 ))}
@@ -265,7 +304,7 @@ export const Budget: React.FC = () => {
                     key={budget.id}
                     className="bg-orange-500/20 backdrop-blur-sm rounded-xl p-4 border border-orange-400/30 glow-orange"
                   >
-                    <p className="text-sm text-orange-200 font-semibold">
+                    <p className="text-sm text-orange-900 font-bold">
                       <strong>{budget.category}</strong> is at{" "}
                       {((budget.spent / budget.limit) * 100).toFixed(1)}% of
                       budget limit
@@ -277,6 +316,28 @@ export const Budget: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Budget Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card-glass-purple p-8 glow-purple">
+          <h3 className="text-xl font-bold text-gradient-purple mb-6">Budget Spending Distribution</h3>
+          <Chart data={budgetChartData} type="pie" />
+        </div>
+        
+        <div className="card-glass-blue p-8 glow-blue">
+          <h3 className="text-xl font-bold text-gradient-blue mb-6">Budget vs Spending</h3>
+          <Chart 
+            data={budgets
+              .filter(b => b.period === selectedPeriod)
+              .map(budget => ({
+                name: budget.category,
+                income: budget.limit,
+                expenses: budget.spent
+              }))} 
+            type="bar" 
+          />
+        </div>
+      </div>
 
       {/* Budget List */}
       <div className="card-glass-indigo glow-indigo">
@@ -306,10 +367,10 @@ export const Budget: React.FC = () => {
                     <span
                       className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border ${
                         isOverBudget
-                          ? "bg-red-500/20 text-red-300 border-red-400/30 glow-red"
+                          ? "bg-red-500/20 text-red-900 border-red-400/30 glow-red"
                           : isNearLimit
-                          ? "bg-orange-500/20 text-orange-300 border-orange-400/30 glow-orange"
-                          : "bg-green-500/20 text-green-300 border-green-400/30 glow-green"
+                          ? "bg-orange-500/20 text-orange-900 border-orange-400/30 glow-orange"
+                          : "bg-green-500/20 text-green-900 border-green-400/30 glow-green"
                       }`}
                     >
                       {percentage.toFixed(1)}% used
@@ -318,11 +379,11 @@ export const Budget: React.FC = () => {
 
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
-                      <p className="text-sm text-slate-300 font-semibold">
-                        ${budget.spent.toFixed(2)} / ${budget.limit.toFixed(2)}
+                      <p className="text-sm text-slate-900 font-bold">
+                        {formatAmount(budget.spent)} / {formatAmount(budget.limit)}
                       </p>
-                      <p className="text-xs text-slate-400 font-medium">
-                        ${(budget.limit - budget.spent).toFixed(2)} remaining
+                      <p className="text-xs text-slate-800 font-bold">
+                        {formatAmount(budget.limit - budget.spent)} remaining
                       </p>
                     </div>
 
@@ -370,7 +431,7 @@ export const Budget: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Category
                 </label>
                 <select
@@ -390,7 +451,7 @@ export const Budget: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Budget Limit
                 </label>
                 <input
@@ -406,7 +467,7 @@ export const Budget: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Period
                 </label>
                 <select
@@ -454,7 +515,7 @@ export const Budget: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Category
                 </label>
                 <input
@@ -466,7 +527,7 @@ export const Budget: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Budget Limit
                 </label>
                 <input
@@ -484,7 +545,7 @@ export const Budget: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Current Spent
                 </label>
                 <input

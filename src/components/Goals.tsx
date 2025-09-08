@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFinance } from "../contexts/FinanceContext";
 import { useAlerts } from "../contexts/AlertContext";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { Chart } from "./ui/Chart";
 import {
   Target,
   Plus,
@@ -15,8 +17,9 @@ import {
 } from "lucide-react";
 
 export const Goals: React.FC = () => {
-  const { goals, addGoal, updateGoal } = useFinance();
+  const { goals, addGoal, updateGoal, totalIncome } = useFinance();
   const { addAlert } = useAlerts();
+  const { formatAmount } = useCurrency();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<any>(null);
   const [contributionModal, setContributionModal] = useState<any>(null);
@@ -43,12 +46,41 @@ export const Goals: React.FC = () => {
 
   // Calculate goal statistics
   const totalGoalTarget = goals.reduce((sum, goal) => sum + goal.target, 0);
+  
+  // Real-time goal progress calculation from income
+  useEffect(() => {
+    if (totalGoalTarget > 0) {
+      goals.forEach(goal => {
+        // Calculate progress based on income allocation (10% of income goes to goals)
+        const monthlyGoalContribution = totalIncome * 0.1;
+        const goalShare = goal.target / totalGoalTarget;
+        const newProgress = Math.min(goal.current + (monthlyGoalContribution * goalShare), goal.target);
+        
+        if (Math.abs(newProgress - goal.current) > 0.01) {
+          updateGoal(goal.id, { ...goal, current: newProgress });
+        }
+      });
+    }
+  }, [totalIncome, goals, totalGoalTarget, updateGoal]);
   const totalGoalProgress = goals.reduce((sum, goal) => sum + goal.current, 0);
   const completedGoals = goals.filter(
     (goal) => goal.current >= goal.target
   ).length;
   const overallProgress =
     totalGoalTarget > 0 ? (totalGoalProgress / totalGoalTarget) * 100 : 0;
+
+  // Goal chart data
+  const goalChartData = goals.map(goal => ({
+    name: goal.title,
+    value: goal.current
+  }));
+
+  // Progress chart data
+  const progressChartData = goals.map(goal => ({
+    name: goal.title,
+    income: goal.target,
+    expenses: goal.current
+  }));
 
   const handleAddGoal = async () => {
     if (
@@ -65,6 +97,7 @@ export const Goals: React.FC = () => {
         target: parseFloat(newGoal.target),
         deadline: newGoal.deadline,
         category: newGoal.category,
+        current: 0,
       });
 
       addAlert({
@@ -164,7 +197,7 @@ export const Goals: React.FC = () => {
           <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
             Financial Goals
           </h1>
-          <p className="text-slate-300 mt-2 text-lg">
+          <p className="text-slate-900 mt-2 text-lg font-bold">
             Track and achieve your financial objectives
           </p>
         </div>
@@ -182,7 +215,7 @@ export const Goals: React.FC = () => {
         <div className="card-glass-blue p-6 glow-blue">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">Total Goals</p>
+              <p className="text-sm font-bold text-slate-900">Total Goals</p>
               <p className="text-3xl font-bold text-gradient bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{goals.length}</p>
             </div>
             <div className="p-3 bg-blue-500/20 backdrop-blur-sm rounded-xl border border-blue-400/30 glow-blue">
@@ -194,13 +227,13 @@ export const Goals: React.FC = () => {
         <div className="card-glass-green p-6 glow-green">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">Completed</p>
+              <p className="text-sm font-bold text-slate-900">Completed</p>
               <p className="text-3xl font-bold text-gradient bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent">
                 {completedGoals}
               </p>
               <div className="flex items-center space-x-1 mt-1">
                 <CheckCircle className="h-5 w-5 text-green-400" />
-                <span className="text-sm text-green-300 font-semibold">
+                <span className="text-sm text-green-700 font-bold">
                   {goals.length > 0
                     ? ((completedGoals / goals.length) * 100).toFixed(1)
                     : 0}
@@ -217,9 +250,9 @@ export const Goals: React.FC = () => {
         <div className="card-glass-purple p-6 glow-purple">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">Total Target</p>
+              <p className="text-sm font-bold text-slate-900">Total Target</p>
               <p className="text-3xl font-bold text-gradient bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                ${totalGoalTarget.toFixed(2)}
+                {formatAmount(totalGoalTarget)}
               </p>
             </div>
             <div className="p-3 bg-purple-500/20 backdrop-blur-sm rounded-xl border border-purple-400/30 glow-purple">
@@ -231,7 +264,7 @@ export const Goals: React.FC = () => {
         <div className="card-glass-indigo p-6 glow-indigo">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-300">
+              <p className="text-sm font-bold text-slate-900">
                 Overall Progress
               </p>
               <p className="text-3xl font-bold text-gradient bg-gradient-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent">
@@ -239,8 +272,8 @@ export const Goals: React.FC = () => {
               </p>
               <div className="flex items-center space-x-1 mt-1">
                 <TrendingUp className="h-5 w-5 text-indigo-400" />
-                <span className="text-sm text-indigo-300 font-semibold">
-                  ${totalGoalProgress.toFixed(2)} saved
+                <span className="text-sm text-indigo-700 font-bold">
+                  {formatAmount(totalGoalProgress)} saved
                 </span>
               </div>
             </div>
@@ -248,6 +281,19 @@ export const Goals: React.FC = () => {
               <TrendingUp className="h-7 w-7 text-indigo-400" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Goal Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card-glass-purple p-8 glow-purple">
+          <h3 className="text-xl font-bold text-gradient-purple mb-6">Goal Progress Distribution</h3>
+          <Chart data={goalChartData} type="pie" />
+        </div>
+        
+        <div className="card-glass-blue p-8 glow-blue">
+          <h3 className="text-xl font-bold text-gradient-blue mb-6">Target vs Progress</h3>
+          <Chart data={progressChartData} type="bar" />
         </div>
       </div>
 
@@ -289,7 +335,7 @@ export const Goals: React.FC = () => {
                       {status === "on-track" && "On Track"}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-300 font-semibold mb-1">{goal.category}</p>
+                  <p className="text-sm text-slate-900 font-bold mb-1">{goal.category}</p>
                   <div className="flex items-center space-x-4 text-sm text-slate-400">
                     <span className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4" />
@@ -323,9 +369,9 @@ export const Goals: React.FC = () => {
 
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-300 font-semibold">Progress</span>
-                  <span className="font-bold text-slate-200">
-                    ${goal.current.toFixed(2)} / ${goal.target.toFixed(2)}
+                  <span className="text-slate-900 font-bold">Progress</span>
+                  <span className="font-bold text-slate-900">
+                    {formatAmount(goal.current)} / {formatAmount(goal.target)}
                   </span>
                 </div>
 
@@ -338,16 +384,16 @@ export const Goals: React.FC = () => {
                       style={{ width: `${Math.min(percentage, 100)}%` }}
                     />
                   </div>
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-slate-300">
+                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-slate-900">
                     {percentage.toFixed(1)}%
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center pt-3">
                   <div className="text-sm">
-                    <span className="text-slate-300 font-semibold">Remaining: </span>
-                    <span className="font-bold text-slate-200">
-                      ${Math.max(0, goal.target - goal.current).toFixed(2)}
+                    <span className="text-slate-900 font-bold">Remaining: </span>
+                    <span className="font-bold text-slate-900">
+                      {formatAmount(Math.max(0, goal.target - goal.current))}
                     </span>
                   </div>
 
@@ -376,7 +422,7 @@ export const Goals: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Goal Title
                 </label>
                 <input
@@ -392,7 +438,7 @@ export const Goals: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-slate-900 mb-2">
                     Target Amount
                   </label>
                   <input
@@ -408,7 +454,7 @@ export const Goals: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-300 mb-2">
+                  <label className="block text-sm font-bold text-slate-900 mb-2">
                     Category
                   </label>
                   <select
@@ -429,7 +475,7 @@ export const Goals: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Target Date
                 </label>
                 <input
@@ -471,7 +517,7 @@ export const Goals: React.FC = () => {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Goal Title
                 </label>
                 <input
@@ -485,7 +531,7 @@ export const Goals: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Target Amount
                 </label>
                 <input
@@ -500,7 +546,7 @@ export const Goals: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-300 mb-2">
+                <label className="block text-sm font-bold text-slate-900 mb-2">
                   Target Date
                 </label>
                 <input

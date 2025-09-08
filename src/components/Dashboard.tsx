@@ -38,16 +38,78 @@ export const Dashboard: React.FC = () => {
 
   // Calculate spending by category for chart
   const categorySpending = transactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.amount < 0) // Expenses are negative
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
       return acc;
     }, {} as Record<string, number>);
 
-  const chartData = Object.entries(categorySpending).map(([category, amount]) => ({
-    name: category,
-    value: amount
-  }));
+  const chartData = Object.entries(categorySpending)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 6)
+    .map(([category, amount]) => ({
+      name: category,
+      value: amount
+    }));
+
+  // Monthly trend data for bar chart
+  const last6Months = Array.from({ length: 6 }, (_, i) => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+    
+    // Calculate income and expenses for this month
+    const monthTransactions = transactions.filter(t => {
+      const transactionDate = new Date(t.date);
+      return transactionDate.getMonth() === date.getMonth() && 
+             transactionDate.getFullYear() === date.getFullYear();
+    });
+    
+    const income = monthTransactions
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expenses = Math.abs(monthTransactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0));
+    
+    return {
+      name: monthName,
+      income,
+      expenses
+    };
+  }).reverse();
+
+  // Calculate trend percentages with real data
+  const previousMonthTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.date);
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+    return transactionDate.getMonth() === lastMonth.getMonth();
+  });
+  
+  const previousMonthIncome = previousMonthTransactions
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+  
+  const previousMonthExpenses = Math.abs(previousMonthTransactions
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0));
+
+  // Calculate trend percentages
+  const balanceTrend = currentBalance > 0 ? 'up' : 'down';
+  const incomeTrend = monthlyIncome >= previousMonthIncome ? 'up' : 'down';
+  const expenseTrend = monthlyExpenses <= previousMonthExpenses ? 'up' : 'down';
+  const savingsTrend = savingsRate > 0 ? 'up' : 'down';
+
+  // Calculate trend values
+  const incomeChange = previousMonthIncome > 0 ? ((monthlyIncome - previousMonthIncome) / previousMonthIncome * 100) : 0;
+  const expenseChange = previousMonthExpenses > 0 ? ((monthlyExpenses - previousMonthExpenses) / previousMonthExpenses * 100) : 0;
+  
+  const balanceTrendValue = `${Math.abs(savingsRate).toFixed(1)}%`;
+  const incomeTrendValue = `${Math.abs(incomeChange).toFixed(1)}%`;
+  const expenseTrendValue = `${Math.abs(expenseChange).toFixed(1)}%`;
+  const savingsTrendValue = `${savingsRate.toFixed(1)}%`;
 
   return (
     <div className="space-y-6">
@@ -55,7 +117,7 @@ export const Dashboard: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Dashboard</h1>
-          <p className="text-slate-600 mt-2 text-lg font-medium">Welcome back! Here's your financial overview.</p>
+          <p className="text-slate-900 mt-2 text-lg font-bold">Welcome back! Here's your financial overview.</p>
         </div>
         {unreadCount > 0 && (
           <div className="card-glass-orange p-4 glow-orange animate-bounce">
@@ -81,24 +143,24 @@ export const Dashboard: React.FC = () => {
           title="Monthly Income"
           value={formatAmount(monthlyIncome)}
           icon={TrendingUp}
-          trend="up"
-          trendValue={`+${((monthlyIncome / (monthlyIncome * 0.9)) * 100 - 100).toFixed(1)}%`}
+          trend={incomeTrend}
+          trendValue={incomeTrendValue}
           color="green"
         />
         <MetricCard
           title="Monthly Expenses"
           value={formatAmount(monthlyExpenses)}
           icon={TrendingDown}
-          trend="down"
-          trendValue={`-${((monthlyExpenses * 0.95 / monthlyExpenses) * 100 - 100).toFixed(1)}%`}
+          trend={expenseTrend}
+          trendValue={expenseTrendValue}
           color="red"
         />
         <MetricCard
           title="Savings Rate"
-          value={`${savingsRate.toFixed(1)}%`}
+          value={savingsTrendValue}
           icon={PiggyBank}
-          trend={savingsRate > 20 ? 'up' : 'down'}
-          trendValue={`${savingsRate > 20 ? '+' : ''}${(savingsRate - 20).toFixed(1)}%`}
+          trend={savingsTrend}
+          trendValue={savingsTrendValue}
           color="purple"
         />
       </div>
@@ -112,15 +174,7 @@ export const Dashboard: React.FC = () => {
         
         <div className="card-glass-blue p-8 glow-blue">
           <h3 className="text-xl font-bold text-gradient-blue mb-6">Monthly Trend</h3>
-          <Chart 
-            data={[
-              { name: 'Jan', income: monthlyIncome * 0.8, expenses: monthlyExpenses * 0.85 },
-              { name: 'Feb', income: monthlyIncome * 0.9, expenses: monthlyExpenses * 0.95 },
-              { name: 'Mar', income: monthlyIncome * 0.85, expenses: monthlyExpenses * 0.9 },
-              { name: 'Current', income: monthlyIncome, expenses: monthlyExpenses }
-            ]} 
-            type="bar" 
-          />
+          <Chart data={last6Months} type="bar" />
         </div>
       </div>
 
@@ -145,7 +199,7 @@ export const Dashboard: React.FC = () => {
               <PiggyBank className="h-6 w-6 text-emerald-600" />
             </div>
           </div>
-          <BudgetOverview budgets={budgets} />
+          <BudgetOverview budgets={budgets.filter(b => b.period === 'monthly')} />
         </div>
 
         {/* Goal Progress */}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface Budget {
   id: string;
@@ -14,6 +15,20 @@ interface BudgetOverviewProps {
 }
 
 export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ budgets }) => {
+  const { formatAmount } = useCurrency();
+  
+  if (!budgets || budgets.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <div className="p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/20 inline-block">
+          <AlertTriangle className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+          <p className="text-slate-900 font-bold text-sm">No budgets found</p>
+          <p className="text-slate-700 text-xs mt-1">Create your first budget to get started</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {budgets.map((budget) => {
@@ -25,15 +40,15 @@ export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ budgets }) => {
           <div key={budget.id} className="card-glass-green p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-slate-800 text-sm">{budget.category}</span>
+                <span className="font-bold text-slate-900 text-sm">{budget.category}</span>
                 {isOverBudget ? (
                   <AlertTriangle className="h-4 w-4 text-red-500" />
                 ) : percentage > 50 ? (
                   <CheckCircle className="h-4 w-4 text-green-500" />
                 ) : null}
               </div>
-              <span className="text-xs text-slate-600 font-medium">
-                ${budget.spent.toFixed(2)} / ${budget.limit.toFixed(2)}
+              <span className="text-xs text-slate-900 font-bold">
+                {formatAmount(budget.spent)} / {formatAmount(budget.limit)}
               </span>
             </div>
             
@@ -61,8 +76,8 @@ export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ budgets }) => {
               }`}>
                 {percentage.toFixed(1)}% used
               </span>
-              <span className="text-slate-600 font-medium">
-                ${(budget.limit - budget.spent).toFixed(2)} remaining
+              <span className="text-slate-900 font-bold">
+                {formatAmount(budget.limit - budget.spent)} remaining
               </span>
             </div>
           </div>

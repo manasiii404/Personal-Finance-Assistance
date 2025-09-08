@@ -1,4 +1,5 @@
 import React from 'react';
+import { useCurrency } from '../../contexts/CurrencyContext';
 
 interface ChartData {
   name: string;
@@ -13,6 +14,7 @@ interface ChartProps {
 }
 
 export const Chart: React.FC<ChartProps> = ({ data, type }) => {
+  const { formatAmount } = useCurrency();
   if (type === 'pie') {
     const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
     const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
@@ -23,7 +25,6 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
           <svg width="200" height="200" className="transform -rotate-90">
             {data.map((item, index) => {
               const percentage = ((item.value || 0) / total) * 100;
-              const angle = (percentage / 100) * 360;
               const radius = 80;
               const circumference = 2 * Math.PI * radius;
               const strokeDasharray = `${(percentage / 100) * circumference} ${circumference}`;
@@ -50,8 +51,8 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gradient">${total.toFixed(0)}</p>
-              <p className="text-sm text-slate-600 font-medium">Total</p>
+              <p className="text-2xl font-bold text-gradient">{formatAmount(total)}</p>
+              <p className="text-sm text-slate-900 font-bold">Total</p>
             </div>
           </div>
         </div>
@@ -62,9 +63,9 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: colors[index % colors.length] }}
               />
-              <span className="text-sm text-slate-700 font-medium">{item.name}</span>
-              <span className="text-sm font-bold text-slate-800">
-                ${(item.value || 0).toFixed(0)}
+              <span className="text-sm text-slate-900 font-bold">{item.name}</span>
+              <span className="text-sm font-bold text-slate-900">
+                {formatAmount(item.value || 0)}
               </span>
             </div>
           ))}
@@ -80,7 +81,7 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
 
     return (
       <div className="h-64 flex items-end justify-center space-x-4 px-4">
-        {data.map((item, index) => (
+        {data.map((item) => (
           <div key={item.name} className="flex flex-col items-center space-y-2 flex-1">
             <div className="flex space-x-1 items-end h-48">
               {item.income && (
@@ -89,8 +90,8 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
                     className="bg-gradient-to-t from-emerald-500 to-teal-400 rounded-t-md transition-all duration-500"
                     style={{ height: `${(item.income / maxValue) * 192}px` }}
                   />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 card-glass-green text-slate-800 text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold">
-                    Income: ${item.income.toFixed(0)}
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 card-glass-green text-slate-900 text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold">
+                    Income: {formatAmount(item.income)}
                   </div>
                 </div>
               )}
@@ -100,13 +101,13 @@ export const Chart: React.FC<ChartProps> = ({ data, type }) => {
                     className="bg-gradient-to-t from-orange-500 to-red-400 rounded-t-md transition-all duration-500"
                     style={{ height: `${(item.expenses / maxValue) * 192}px` }}
                   />
-                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 card-glass-orange text-slate-800 text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold">
-                    Expenses: ${item.expenses.toFixed(0)}
+                  <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 card-glass-orange text-slate-900 text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap font-bold">
+                    Expenses: {formatAmount(item.expenses)}
                   </div>
                 </div>
               )}
             </div>
-            <span className="text-xs text-slate-700 font-bold">{item.name}</span>
+            <span className="text-xs text-slate-900 font-bold">{item.name}</span>
           </div>
         ))}
       </div>

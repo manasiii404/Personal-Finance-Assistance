@@ -348,7 +348,7 @@ export const Transactions: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">Transactions</h1>
-          <p className="text-slate-600 mt-2 text-lg font-medium">
+          <p className="text-slate-900 mt-2 text-lg font-bold">
             Manage and track all your financial transactions
           </p>
         </div>
@@ -374,7 +374,7 @@ export const Transactions: React.FC = () => {
       <div className="card-glass-blue p-8 glow-blue">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-700" />
             <input
               type="text"
               placeholder="Search transactions..."
@@ -449,14 +449,14 @@ export const Transactions: React.FC = () => {
 
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
-                      <h4 className="font-bold text-slate-800 text-lg">
+                      <h4 className="font-bold text-slate-900 text-lg">
                         {transaction.description}
                       </h4>
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/30 backdrop-blur-sm text-slate-700 border border-white/20">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/30 backdrop-blur-sm text-slate-900 border border-white/20">
                         {transaction.category}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2 text-sm text-slate-600">
+                    <div className="flex items-center space-x-2 text-sm text-slate-900">
                       <Calendar className="h-4 w-4" />
                       <span>{new Date(transaction.date).toLocaleDateString()}</span>
                       <Tag className="h-4 w-4 ml-4" />
@@ -468,7 +468,7 @@ export const Transactions: React.FC = () => {
                         {transaction.category}
                       </span>
                       <CreditCard className="h-4 w-4 ml-4" />
-                      <span className="text-xs text-slate-500">{transaction.source}</span>
+                      <span className="text-xs text-slate-900 font-bold">{transaction.source}</span>
                     </div>
                   </div>
                 </div>
@@ -489,13 +489,13 @@ export const Transactions: React.FC = () => {
                   <div className="flex space-x-2">
                     <button 
                       onClick={() => handleEditTransaction(transaction)}
-                      className="p-3 text-slate-500 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 hover:bg-white/30 transition-colors"
+                      className="p-3 text-slate-800 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 hover:bg-white/30 transition-colors"
                     >
                       <Edit className="h-5 w-5" />
                     </button>
                     <button
                       onClick={() => deleteTransaction(transaction.id)}
-                      className="p-3 text-slate-500 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20"
+                      className="p-3 text-slate-800 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20"
                     >
                       <Trash2 className="h-5 w-5" />
                     </button>
