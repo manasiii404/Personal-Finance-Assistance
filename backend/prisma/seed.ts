@@ -14,7 +14,7 @@ async function main() {
     { name: 'Investment', type: 'INCOME' },
     { name: 'Business', type: 'INCOME' },
     { name: 'Other Income', type: 'INCOME' },
-    
+
     // Expense categories
     { name: 'Food', type: 'EXPENSE' },
     { name: 'Transportation', type: 'EXPENSE' },
@@ -39,7 +39,7 @@ async function main() {
 
   // Create a demo user
   const hashedPassword = await bcrypt.hash('demo123', 12);
-  
+
   const demoUser = await prisma.user.upsert({
     where: { email: 'demo@example.com' },
     update: {},
@@ -116,7 +116,7 @@ async function main() {
       category: 'Food',
       limit: 500,
       spent: 128.50,
-      period: 'MONTHLY' as const,
+      period: 'monthly' as const,
     },
     {
       userId: demoUser.id,

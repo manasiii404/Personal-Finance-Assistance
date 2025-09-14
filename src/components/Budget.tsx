@@ -18,14 +18,18 @@ import { useCurrency } from "../contexts/CurrencyContext";
 import { Chart } from "./ui/Chart";
 
 export const Budget: React.FC = () => {
-  const { budgets, updateBudget, addBudget, transactions } = useFinance();
+  const { budgets, updateBudget, addBudget, transactions, isLoading } = useFinance();
   const { addAlert } = useAlerts();
   const { formatAmount } = useCurrency();
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingBudget, setEditingBudget] = useState<any>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<
     "monthly" | "weekly" | "yearly"
   >("monthly");
+  const [isAddingBudget, setIsAddingBudget] = useState(false);
+  const [isUpdatingBudget, setIsUpdatingBudget] = useState(false);
+
 
   const [newBudget, setNewBudget] = useState({
     category: "",
@@ -45,29 +49,32 @@ export const Budget: React.FC = () => {
 
   // Real-time budget calculation from transactions
   useEffect(() => {
+    if (budgets.length === 0 || transactions.length === 0) return;
+    
     budgets.forEach(budget => {
       const categoryExpenses = transactions
         .filter(t => t.category === budget.category && t.amount < 0)
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
       
-      if (categoryExpenses !== budget.spent) {
-        updateBudget(budget.id, { ...budget, spent: categoryExpenses });
+      // Only update if there's a significant difference to avoid infinite loops
+      if (Math.abs(categoryExpenses - budget.spent) > 0.01) {
+        updateBudget(budget.id, { spent: categoryExpenses });
       }
     });
-  }, [transactions, budgets, updateBudget]);
+  }, [transactions]); // Remove budgets and updateBudget from dependencies to prevent infinite loop
 
   // Calculate budget insights
   const totalBudget = budgets
-    .filter((b) => b.period === selectedPeriod)
+    .filter((b) => b.period.toLowerCase() === selectedPeriod)
     .reduce((sum, b) => sum + b.limit, 0);
   const totalSpent = budgets
-    .filter((b) => b.period === selectedPeriod)
+    .filter((b) => b.period.toLowerCase() === selectedPeriod)
     .reduce((sum, b) => sum + b.spent, 0);
   const remainingBudget = totalBudget - totalSpent;
 
   // Budget chart data
   const budgetChartData = budgets
-    .filter(b => b.period === selectedPeriod)
+    .filter(b => b.period.toLowerCase() === selectedPeriod)
     .map(budget => ({
       name: budget.category,
       value: budget.spent
@@ -75,13 +82,13 @@ export const Budget: React.FC = () => {
 
   // Get overspent budgets
   const overspentBudgets = budgets.filter(
-    (b) => b.spent > b.limit && b.period === selectedPeriod
+    (b) => b.spent > b.limit && b.period.toLowerCase() === selectedPeriod
   );
 
   // Get budgets near limit (>80%)
   const nearLimitBudgets = budgets.filter((b) => {
     const percentage = (b.spent / b.limit) * 100;
-    return percentage > 80 && percentage <= 100 && b.period === selectedPeriod;
+    return percentage > 80 && percentage <= 100 && b.period.toLowerCase() === selectedPeriod;
   });
 
   const handleAddBudget = async () => {
@@ -89,7 +96,7 @@ export const Budget: React.FC = () => {
 
     // Check if budget already exists for this category and period
     const existingBudget = budgets.find(
-      b => b.category === newBudget.category && b.period === newBudget.period
+      b => b.category === newBudget.category && b.period.toLowerCase() === newBudget.period
     );
 
     if (existingBudget) {
@@ -101,6 +108,7 @@ export const Budget: React.FC = () => {
       return;
     }
 
+    setIsAddingBudget(true);
     try {
       await addBudget({
         category: newBudget.category,
@@ -124,6 +132,8 @@ export const Budget: React.FC = () => {
         title: "Failed to Create Budget",
         message: "There was an error creating the budget. Please try again.",
       });
+    } finally {
+      setIsAddingBudget(false);
     }
   };
 
@@ -134,10 +144,23 @@ export const Budget: React.FC = () => {
   const handleUpdateBudget = async () => {
     if (!editingBudget) return;
 
+    setIsUpdatingBudget(true);
     try {
-      await updateBudget(editingBudget.id, {
-        limit: parseFloat(editingBudget.limit),
-      });
+      // Prepare update data with proper validation
+      const updateData: any = {
+        limit: parseFloat(editingBudget.limit)
+      };
+
+      // Include category if it exists
+      if (editingBudget.category) {
+        updateData.category = editingBudget.category;
+      }
+
+      // Always include the period in the update - backend expects exact case
+      updateData.period = (editingBudget.period || 'monthly').toLowerCase();
+
+      
+      await updateBudget(editingBudget.id, updateData);
 
       addAlert({
         type: "info",
@@ -148,11 +171,17 @@ export const Budget: React.FC = () => {
       setEditingBudget(null);
     } catch (error) {
       console.error("Error updating budget:", error);
-      // Error handling is done in the context
+      addAlert({
+        type: "error",
+        title: "Update Failed",
+        message: error instanceof Error ? error.message : "Failed to update budget"
+      });
+    } finally {
+      setIsUpdatingBudget(false);
     }
   };
 
-  const filteredBudgets = budgets.filter((b) => b.period === selectedPeriod);
+  const filteredBudgets = budgets.filter((b) => b.period.toLowerCase() === selectedPeriod);
 
   return (
     <div className="space-y-6">
@@ -328,7 +357,7 @@ export const Budget: React.FC = () => {
           <h3 className="text-xl font-bold text-gradient-blue mb-6">Budget vs Spending</h3>
           <Chart 
             data={budgets
-              .filter(b => b.period === selectedPeriod)
+              .filter(b => b.period.toLowerCase() === selectedPeriod)
               .map(budget => ({
                 name: budget.category,
                 income: budget.limit,
@@ -490,9 +519,17 @@ export const Budget: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleAddBudget}
-                className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
+                disabled={isAddingBudget}
+                className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Add Budget
+                {isAddingBudget ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : (
+                  "Add Budget"
+                )}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -560,9 +597,17 @@ export const Budget: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleUpdateBudget}
-                className="btn-primary flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600"
+                disabled={isUpdatingBudget}
+                className="btn-primary flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Update Budget
+                {isUpdatingBudget ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Budget"
+                )}
               </button>
               <button
                 onClick={() => setEditingBudget(null)}

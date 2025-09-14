@@ -107,13 +107,16 @@ export class BudgetService {
         throw createError('Budget not found', 404);
       }
 
+      // Convert period to lowercase for validation
+      const period = data.period?.toLowerCase();
+      
       // Check if new category and period combination already exists
-      if (data.category && data.period) {
+      if (data.category && period) {
         const conflictingBudget = await prisma.budget.findFirst({
           where: {
             userId,
             category: data.category,
-            period: data.period.toUpperCase() as BudgetPeriod,
+            period: period.toUpperCase() as BudgetPeriod,
             id: { not: budgetId },
           },
         });
@@ -123,13 +126,20 @@ export class BudgetService {
         }
       }
 
+      const updateData: any = {
+        ...(data.category && { category: data.category }),
+        ...(data.limit && { limit: data.limit }),
+        ...(data.spent !== undefined && { spent: data.spent }),
+      };
+
+      // Only include period in update if it's provided
+      if (period) {
+        updateData.period = period.toUpperCase() as BudgetPeriod;
+      }
+
       const budget = await prisma.budget.update({
         where: { id: budgetId },
-        data: {
-          ...(data.category && { category: data.category }),
-          ...(data.limit && { limit: data.limit }),
-          ...(data.period && { period: data.period.toUpperCase() as BudgetPeriod }),
-        },
+        data: updateData,
       });
 
       logger.info('Budget updated:', { budgetId, userId, updates: data });

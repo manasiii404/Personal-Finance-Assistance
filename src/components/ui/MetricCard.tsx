@@ -33,15 +33,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   const textGradients = {
-    blue: 'text-gradient-blue',
-    green: 'text-gradient-green',
-    red: 'text-gradient-warning',
-    purple: 'text-gradient-purple'
+    blue: 'text-blue-600',
+    green: 'text-green-600',
+    red: 'text-red-600',
+    purple: 'text-purple-600'
   };
 
   const trendColors = {
-    up: 'text-emerald-600 bg-emerald-500/20 border border-emerald-300/30',
-    down: 'text-red-600 bg-red-500/20 border border-red-300/30'
+    up: 'text-green-600 bg-green-100 border border-green-200',
+    down: 'text-red-600 bg-red-100 border border-red-200'
   };
 
   return (

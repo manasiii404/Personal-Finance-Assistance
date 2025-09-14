@@ -27,6 +27,9 @@ export const Transactions: React.FC = () => {
   const [showSMSSimulator, setShowSMSSimulator] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [isAddingTransaction, setIsAddingTransaction] = useState(false);
+  const [isParsingSMS, setIsParsingSMS] = useState(false);
+  const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
 
   // New transaction form state
   const [newTransaction, setNewTransaction] = useState({
@@ -37,7 +40,6 @@ export const Transactions: React.FC = () => {
     source: "Manual Entry",
   });
 
-  const [isLoading, setIsLoading] = useState(false);
 
   // SMS Simulator state
   const [smsText, setSmsText] = useState("");
@@ -98,7 +100,7 @@ export const Transactions: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsAddingTransaction(true);
     try {
       const amount = parseFloat(newTransaction.amount);
       if (isNaN(amount) || amount <= 0) {
@@ -152,7 +154,7 @@ export const Transactions: React.FC = () => {
         message: "Failed to add transaction. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsAddingTransaction(false);
     }
   };
 
@@ -166,7 +168,7 @@ export const Transactions: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsParsingSMS(true);
     try {
       // Simple SMS parsing logic for demo
       const smsLower = smsText.toLowerCase();
@@ -244,7 +246,7 @@ export const Transactions: React.FC = () => {
         message: "Could not parse the SMS text. Please try again or add manually.",
       });
     } finally {
-      setIsLoading(false);
+      setIsParsingSMS(false);
     }
   };
 
@@ -299,7 +301,7 @@ export const Transactions: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsUpdatingTransaction(true);
     try {
       const amount = parseFloat(editTransaction.amount);
       if (isNaN(amount) || amount <= 0) {
@@ -338,7 +340,7 @@ export const Transactions: React.FC = () => {
         message: "Failed to update transaction. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsUpdatingTransaction(false);
     }
   };
 
@@ -478,11 +480,11 @@ export const Transactions: React.FC = () => {
                     <p
                       className={`text-2xl font-bold ${
                         transaction.amount > 0
-                          ? "text-gradient-green"
-                          : "text-gradient-warning"
+                          ? "text-green-600"
+                          : "text-red-600"
                       }`}
                     >
-                      {transaction.amount > 0 ? "+" : ""}{formatAmount(transaction.amount)}
+                      {transaction.amount > 0 ? "+" : "-"} {formatAmount(Math.abs(transaction.amount))}
                     </p>
                   </div>
 
@@ -601,10 +603,17 @@ export const Transactions: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleAddTransaction}
-                disabled={isLoading}
-                className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isAddingTransaction}
+                className="btn-primary flex-1 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {isLoading ? "Adding..." : "Add Transaction"}
+                {isAddingTransaction ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : (
+                  "Add Transaction"
+                )}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -711,10 +720,17 @@ export const Transactions: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleUpdateTransaction}
-                disabled={isLoading}
-                className="btn-primary flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isUpdatingTransaction}
+                className="btn-primary flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {isLoading ? "Updating..." : "Update Transaction"}
+                {isUpdatingTransaction ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Transaction"
+                )}
               </button>
               <button
                 onClick={() => setShowEditModal(false)}
@@ -768,10 +784,17 @@ export const Transactions: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={parseSMS}
-                disabled={isLoading}
-                className="btn-primary flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isParsingSMS}
+                className="btn-primary flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {isLoading ? "Parsing..." : "Parse SMS"}
+                {isParsingSMS ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Parsing...
+                  </>
+                ) : (
+                  "Parse SMS"
+                )}
               </button>
               <button
                 onClick={() => setShowSMSSimulator(false)}

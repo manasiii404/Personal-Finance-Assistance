@@ -199,7 +199,32 @@ export const Dashboard: React.FC = () => {
               <PiggyBank className="h-6 w-6 text-emerald-600" />
             </div>
           </div>
-          <BudgetOverview budgets={budgets.filter(b => b.period === 'monthly')} />
+          
+          {/* Budget Summary Stats */}
+          <div className="mb-4 grid grid-cols-2 gap-3">
+            <div className="card-glass-white p-3 text-center">
+              <div className="text-lg font-bold text-emerald-600">
+                {budgets.filter(b => (b.spent / b.limit) <= 0.8).length}
+              </div>
+              <div className="text-xs text-slate-600 font-medium">On Track</div>
+            </div>
+            <div className="card-glass-white p-3 text-center">
+              <div className="text-lg font-bold text-red-600">
+                {budgets.filter(b => (b.spent / b.limit) > 1).length}
+              </div>
+              <div className="text-xs text-slate-600 font-medium">Over Budget</div>
+            </div>
+          </div>
+          
+          <BudgetOverview budgets={budgets.slice(0, 3)} />
+          
+          {budgets.length > 3 && (
+            <div className="mt-3 text-center">
+              <span className="text-xs text-slate-600 font-medium">
+                +{budgets.length - 3} more budgets
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Goal Progress */}

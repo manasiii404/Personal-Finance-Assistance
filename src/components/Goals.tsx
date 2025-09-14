@@ -10,19 +10,21 @@ import {
   Calendar,
   DollarSign,
   Edit,
-  Trash2,
   CheckCircle,
   Clock,
   AlertTriangle,
 } from "lucide-react";
 
 export const Goals: React.FC = () => {
-  const { goals, addGoal, updateGoal, totalIncome } = useFinance();
+  const { goals, addGoal, updateGoal, addContribution, totalIncome } = useFinance();
   const { addAlert } = useAlerts();
   const { formatAmount } = useCurrency();
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingGoal, setEditingGoal] = useState<any>(null);
   const [contributionModal, setContributionModal] = useState<any>(null);
+  const [isAddingGoal, setIsAddingGoal] = useState(false);
+  const [isUpdatingGoal, setIsUpdatingGoal] = useState(false);
+  const [isAddingContribution, setIsAddingContribution] = useState(false);
 
   const [newGoal, setNewGoal] = useState({
     title: "",
@@ -91,6 +93,7 @@ export const Goals: React.FC = () => {
     )
       return;
 
+    setIsAddingGoal(true);
     try {
       await addGoal({
         title: newGoal.title,
@@ -111,12 +114,15 @@ export const Goals: React.FC = () => {
     } catch (error) {
       console.error("Error adding goal:", error);
       // Error handling is done in the context
+    } finally {
+      setIsAddingGoal(false);
     }
   };
 
   const handleUpdateGoal = async () => {
     if (!editingGoal) return;
 
+    setIsUpdatingGoal(true);
     try {
       await updateGoal(editingGoal.id, {
         title: editingGoal.title,
@@ -134,13 +140,20 @@ export const Goals: React.FC = () => {
       setEditingGoal(null);
     } catch (error) {
       console.error("Error updating goal:", error);
-      // Error handling is done in the context
+      addAlert({
+        type: "error",
+        title: "Update Failed",
+        message: error instanceof Error ? error.message : "Failed to update goal"
+      });
+    } finally {
+      setIsUpdatingGoal(false);
     }
   };
 
   const handleContribution = async () => {
     if (!contributionModal || !contribution) return;
 
+    setIsAddingContribution(true);
     try {
       const amount = parseFloat(contribution);
       await addContribution(contributionModal.id, amount);
@@ -170,6 +183,8 @@ export const Goals: React.FC = () => {
     } catch (error) {
       console.error("Error adding contribution:", error);
       // Error handling is done in the context
+    } finally {
+      setIsAddingContribution(false);
     }
   };
 
@@ -492,9 +507,17 @@ export const Goals: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleAddGoal}
-                className="btn-primary flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                disabled={isAddingGoal}
+                className="btn-primary flex-1 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Create Goal
+                {isAddingGoal ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Creating...
+                  </>
+                ) : (
+                  "Create Goal"
+                )}
               </button>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -563,9 +586,17 @@ export const Goals: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleUpdateGoal}
-                className="btn-primary flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600"
+                disabled={isUpdatingGoal}
+                className="btn-primary flex-1 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Update Goal
+                {isUpdatingGoal ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  "Update Goal"
+                )}
               </button>
               <button
                 onClick={() => setEditingGoal(null)}
@@ -641,9 +672,17 @@ export const Goals: React.FC = () => {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={handleContribution}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                disabled={isAddingContribution}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                Add Contribution
+                {isAddingContribution ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Adding...
+                  </>
+                ) : (
+                  "Add Contribution"
+                )}
               </button>
               <button
                 onClick={() => setContributionModal(null)}

@@ -40,6 +40,7 @@ export const updateBudgetSchema = Joi.object({
   category: Joi.string().min(1).max(100).optional(),
   limit: Joi.number().precision(2).positive().optional(),
   period: Joi.string().valid('weekly', 'monthly', 'yearly').optional(),
+  spent: Joi.number().precision(2).min(0).optional(),
 });
 
 // Goal validation schemas

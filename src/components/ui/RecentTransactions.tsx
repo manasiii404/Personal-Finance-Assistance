@@ -41,9 +41,9 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({ transact
           </div>
           <div className="text-right">
             <p className={`font-bold text-lg ${
-              transaction.type === 'income' ? 'text-gradient-green' : 'text-gradient-warning'
+              transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
             }`}>
-              {transaction.type === 'income' ? '+' : ''}{formatAmount(Math.abs(transaction.amount))}
+              {transaction.amount > 0 ? '+' : '-'} {formatAmount(Math.abs(transaction.amount))}
             </p>
             <p className="text-xs text-slate-900 font-bold">
               {new Date(transaction.date).toLocaleDateString()}

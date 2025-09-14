@@ -60,6 +60,7 @@ export interface UpdateBudgetRequest {
   category?: string;
   limit?: number;
   period?: 'weekly' | 'monthly' | 'yearly';
+  spent?: number;
 }
 
 // Goal types

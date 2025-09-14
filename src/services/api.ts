@@ -47,17 +47,36 @@ class ApiService {
     };
 
     try {
-      const response = await fetch(url, config);
+      const { method, headers, body } = config;
+      const response = await fetch(url, {
+        method,
+        headers,
+        ...(body && { body }),
+      });
+
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'An error occurred');
+        const errorMessage = data.message || 
+                            data.error || 
+                            `HTTP error ${response.status}`;
+        const error = new Error(errorMessage);
+        
+        // Attach additional error details
+        (error as any).status = response.status;
+        (error as any).response = data;
+        
+        
+        throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('API Error:', error);
-      throw error;
+      
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('An unknown error occurred');
     }
   }
 
@@ -75,8 +94,8 @@ class ApiService {
       body: JSON.stringify(credentials),
     });
     
-    if (response.data?.token) {
-      this.setToken(response.data.token);
+    if (response.data && typeof response.data === 'object' && 'token' in response.data) {
+      this.setToken((response.data as any).token);
     }
     
     return response;
