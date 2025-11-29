@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs
 
 # Environment variables
 .env
@@ -62,3 +63,16 @@ prisma/migrations/
 
 # Test
 coverage/
+
+# Uploads
+uploads/
+
+# Temporary
+tmp/
+temp/
+
+# TypeScript
+*.tsbuildinfo
+
+# ML Config
+.env.ml

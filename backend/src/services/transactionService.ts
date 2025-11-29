@@ -1,26 +1,52 @@
 import { Prisma, TransactionType } from '@prisma/client';
 import prisma from '@/config/database';
 import { createError } from '@/middleware/errorHandler';
-import { 
-  CreateTransactionRequest, 
-  UpdateTransactionRequest, 
+import {
+  CreateTransactionRequest,
+  UpdateTransactionRequest,
   TransactionFilters,
-  PaginatedResponse 
+  PaginatedResponse
 } from '@/types';
 import { calculatePagination } from '@/utils/helpers';
 import logger from '@/utils/logger';
+import { MLService } from './mlService';
 
 export class TransactionService {
   // Create transaction
   static async createTransaction(userId: string, data: CreateTransactionRequest) {
     try {
+      // Try ML categorization if category not provided or low confidence
+      let finalCategory = data.category;
+      let mlConfidence = 0;
+
+      if (!data.category || data.category === 'Other') {
+        try {
+          const mlPrediction = await MLService.predictCategory(userId, {
+            description: data.description,
+            amount: data.amount,
+            date: data.date
+          });
+
+          if (mlPrediction && mlPrediction.confidence > 0.6) {
+            finalCategory = mlPrediction.category;
+            mlConfidence = mlPrediction.confidence;
+            logger.info('ML categorization applied:', {
+              category: finalCategory,
+              confidence: mlConfidence
+            });
+          }
+        } catch (error) {
+          logger.warn('ML categorization failed, using provided category:', error);
+        }
+      }
+
       const transaction = await prisma.transaction.create({
         data: {
           userId,
           date: new Date(data.date),
           description: data.description,
           amount: data.amount,
-          category: data.category,
+          category: finalCategory || data.category,
           type: data.type.toUpperCase() as TransactionType,
           source: data.source,
         },
@@ -37,14 +63,15 @@ export class TransactionService {
 
       // Update budget if it's an expense
       if (data.type === 'expense') {
-        await this.updateBudgetSpending(userId, data.category, Math.abs(data.amount));
+        await this.updateBudgetSpending(userId, finalCategory || data.category, Math.abs(data.amount));
       }
 
-      logger.info('Transaction created:', { 
-        transactionId: transaction.id, 
-        userId, 
+      logger.info('Transaction created:', {
+        transactionId: transaction.id,
+        userId,
         amount: data.amount,
-        type: data.type 
+        type: data.type,
+        mlCategorized: mlConfidence > 0
       });
 
       return transaction;
@@ -56,7 +83,7 @@ export class TransactionService {
 
   // Get transactions with filters and pagination
   static async getTransactions(
-    userId: string, 
+    userId: string,
     filters: TransactionFilters
   ): Promise<PaginatedResponse<any>> {
     try {
@@ -145,8 +172,8 @@ export class TransactionService {
 
   // Update transaction
   static async updateTransaction(
-    userId: string, 
-    transactionId: string, 
+    userId: string,
+    transactionId: string,
     data: UpdateTransactionRequest
   ) {
     try {
@@ -319,8 +346,8 @@ export class TransactionService {
       return categorySpending.map(item => ({
         category: item.category,
         amount: Math.abs(item._sum.amount || 0),
-        percentage: totalExpenses > 0 
-          ? (Math.abs(item._sum.amount || 0) / totalExpenses) * 100 
+        percentage: totalExpenses > 0
+          ? (Math.abs(item._sum.amount || 0) / totalExpenses) * 100
           : 0,
         transactionCount: item._count.id,
       }));

@@ -15,6 +15,7 @@ import budgetRoutes from '@/routes/budgets';
 import goalRoutes from '@/routes/goals';
 import alertRoutes from '@/routes/alerts';
 import analyticsRoutes from '@/routes/analytics';
+import mlRoutes from '@/routes/ml';
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use('/api/budgets', budgetRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/alerts', alertRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/ml', mlRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

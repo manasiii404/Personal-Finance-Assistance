@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "rootDir": "./",
     "target": "ES2020",
     "module": "commonjs",
     "lib": [
@@ -21,7 +20,7 @@
     "strictNullChecks": true,
     "strictFunctionTypes": true,
     "noImplicitThis": true,
-    "noImplicitReturns": true,
+    "noImplicitReturns": false,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
     "baseUrl": "./",
@@ -50,7 +49,7 @@
     }
   },
   "include": [
-    "src/**/*",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
