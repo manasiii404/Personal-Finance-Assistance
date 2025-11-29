@@ -8,6 +8,12 @@ models/
 *.pkl
 *.joblib
 
+# Seed/Debug Scripts
+seed_*.py
+check_*.py
+inspect_*.py
+train_*.py
+
 # Environment
 .env
 venv/

@@ -47,7 +47,11 @@ export const Budget: React.FC = () => {
     "Other",
   ];
 
-  // Real-time budget calculation from transactions
+  // Budget spending is automatically updated by the backend when transactions are created/updated/deleted
+  // The backend's TransactionService.updateBudgetSpending() handles this in real-time
+  // No need for frontend to manually calculate and update
+  
+  /* COMMENTED OUT - Backend handles budget updates automatically
   useEffect(() => {
     if (budgets.length === 0 || transactions.length === 0) return;
     
@@ -61,7 +65,8 @@ export const Budget: React.FC = () => {
         updateBudget(budget.id, { spent: categoryExpenses });
       }
     });
-  }, [transactions]); // Remove budgets and updateBudget from dependencies to prevent infinite loop
+  }, [transactions]);
+  */
 
   // Calculate budget insights
   const totalBudget = budgets
