@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAlerts } from '../contexts/AlertContext';
 import { useFinance } from '../contexts/FinanceContext';
-import { Bell, BellRing, CheckCircle, AlertTriangle, Info, X, Settings, Mail, MessageSquare, Smartphone, Plus, ToggleLeft as Toggle } from 'lucide-react';
+import { Bell, BellRing, CheckCircle, AlertTriangle, Info, X, Settings, Mail, MessageSquare, Smartphone } from 'lucide-react';
 
 export const Alerts: React.FC = () => {
   const { alerts, markAsRead, clearAlert, addAlert } = useAlerts();
@@ -201,13 +201,14 @@ export const Alerts: React.FC = () => {
           </div>
           <div className="divide-y divide-gray-200">
             {unreadAlerts.map((alert) => {
-              const Icon = alertIcons[alert.type];
+              const alertType = alert.type.toLowerCase() as 'warning' | 'success' | 'info' | 'error';
+              const Icon = alertIcons[alertType];
               return (
                 <div key={alert.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
-                  <div className={`rounded-lg border p-4 ${alertColors[alert.type]}`}>
+                  <div className={`rounded-lg border p-4 ${alertColors[alertType]}`}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3">
-                        <Icon className={`h-5 w-5 mt-0.5 ${iconColors[alert.type]}`} />
+                        <Icon className={`h-5 w-5 mt-0.5 ${iconColors[alertType]}`} />
                         <div className="flex-1">
                           <h4 className="font-semibold mb-1">{alert.title}</h4>
                           <p className="text-sm opacity-90">{alert.message}</p>
@@ -251,12 +252,13 @@ export const Alerts: React.FC = () => {
           </div>
           <div className="divide-y divide-gray-200">
             {readAlerts.map((alert) => {
-              const Icon = alertIcons[alert.type];
+              const alertType = alert.type.toLowerCase() as 'warning' | 'success' | 'info' | 'error';
+              const Icon = alertIcons[alertType];
               return (
                 <div key={alert.id} className="p-6 opacity-70 hover:opacity-100 transition-opacity duration-200">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
-                      <Icon className={`h-5 w-5 mt-0.5 ${iconColors[alert.type]}`} />
+                      <Icon className={`h-5 w-5 mt-0.5 ${iconColors[alertType]}`} />
                       <div className="flex-1">
                         <h4 className="font-medium text-gray-600">{alert.title}</h4>
                         <p className="text-sm text-gray-500">{alert.message}</p>
@@ -313,14 +315,12 @@ export const Alerts: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleSettingToggle(key as keyof typeof alertSettings)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                          alertSettings[key as keyof typeof alertSettings] ? 'bg-blue-600' : 'bg-gray-300'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${alertSettings[key as keyof typeof alertSettings] ? 'bg-blue-600' : 'bg-gray-300'
+                          }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                            alertSettings[key as keyof typeof alertSettings] ? 'translate-x-6' : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${alertSettings[key as keyof typeof alertSettings] ? 'translate-x-6' : 'translate-x-1'
+                            }`}
                         />
                       </button>
                     </div>
@@ -350,14 +350,12 @@ export const Alerts: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handleSettingToggle(key as keyof typeof alertSettings)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                          alertSettings[key as keyof typeof alertSettings] ? 'bg-blue-600' : 'bg-gray-300'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${alertSettings[key as keyof typeof alertSettings] ? 'bg-blue-600' : 'bg-gray-300'
+                          }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                            alertSettings[key as keyof typeof alertSettings] ? 'translate-x-6' : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${alertSettings[key as keyof typeof alertSettings] ? 'translate-x-6' : 'translate-x-1'
+                            }`}
                         />
                       </button>
                     </div>

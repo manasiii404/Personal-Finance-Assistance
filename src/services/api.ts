@@ -36,7 +36,7 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
@@ -57,22 +57,22 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        const errorMessage = data.message || 
-                            data.error || 
-                            `HTTP error ${response.status}`;
+        const errorMessage = data.message ||
+          data.error ||
+          `HTTP error ${response.status}`;
         const error = new Error(errorMessage);
-        
+
         // Attach additional error details
         (error as any).status = response.status;
         (error as any).response = data;
-        
-        
+
+
         throw error;
       }
 
       return data;
     } catch (error) {
-      
+
       if (error instanceof Error) {
         throw error;
       }
@@ -93,11 +93,11 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
-    
+
     if (response.data && typeof response.data === 'object' && 'token' in response.data) {
       this.setToken((response.data as any).token);
     }
-    
+
     return response;
   }
 
@@ -144,7 +144,7 @@ class ApiService {
         }
       });
     }
-    
+
     const queryString = params.toString();
     return this.request(`/transactions${queryString ? `?${queryString}` : ''}`);
   }
@@ -191,7 +191,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const queryString = params.toString();
     return this.request(`/transactions/stats/overview${queryString ? `?${queryString}` : ''}`);
   }
@@ -200,7 +200,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const queryString = params.toString();
     return this.request(`/transactions/stats/categories${queryString ? `?${queryString}` : ''}`);
   }
@@ -224,17 +224,17 @@ class ApiService {
     params.append('format', format);
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const response = await fetch(`${this.baseURL}/transactions/export/data?${params.toString()}`, {
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
-    
+
     if (!response.ok) {
       throw new Error('Export failed');
     }
-    
+
     return response;
   }
 
@@ -246,7 +246,7 @@ class ApiService {
   async getBudgets(period?: string) {
     const params = new URLSearchParams();
     if (period) params.append('period', period);
-    
+
     const queryString = params.toString();
     return this.request(`/budgets${queryString ? `?${queryString}` : ''}`);
   }
@@ -286,7 +286,7 @@ class ApiService {
   async getBudgetStats(period?: string) {
     const params = new URLSearchParams();
     if (period) params.append('period', period);
-    
+
     const queryString = params.toString();
     return this.request(`/budgets/stats/overview${queryString ? `?${queryString}` : ''}`);
   }
@@ -364,13 +364,20 @@ class ApiService {
   async getAlerts(unreadOnly?: boolean) {
     const params = new URLSearchParams();
     if (unreadOnly) params.append('unreadOnly', 'true');
-    
+
     const queryString = params.toString();
     return this.request(`/alerts${queryString ? `?${queryString}` : ''}`);
   }
 
   async getAlert(id: string) {
     return this.request(`/alerts/${id}`);
+  }
+
+  async createAlert(alertData: { type: string; title: string; message: string; actionUrl?: string }) {
+    return this.request('/alerts', {
+      method: 'POST',
+      body: JSON.stringify(alertData),
+    });
   }
 
   async markAsRead(id: string) {
@@ -405,7 +412,7 @@ class ApiService {
   async getFinancialInsights(period?: string) {
     const params = new URLSearchParams();
     if (period) params.append('period', period);
-    
+
     const queryString = params.toString();
     return this.request(`/analytics/insights${queryString ? `?${queryString}` : ''}`);
   }
@@ -414,7 +421,7 @@ class ApiService {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const queryString = params.toString();
     return this.request(`/analytics/spending-analysis${queryString ? `?${queryString}` : ''}`);
   }
@@ -426,7 +433,7 @@ class ApiService {
   async getMonthlyTrends(months?: number) {
     const params = new URLSearchParams();
     if (months) params.append('months', months.toString());
-    
+
     const queryString = params.toString();
     return this.request(`/analytics/monthly-trends${queryString ? `?${queryString}` : ''}`);
   }
@@ -436,7 +443,7 @@ class ApiService {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
     if (type) params.append('type', type);
-    
+
     const queryString = params.toString();
     return this.request(`/analytics/category-breakdown${queryString ? `?${queryString}` : ''}`);
   }
@@ -446,17 +453,17 @@ class ApiService {
     params.append('format', format);
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
-    
+
     const response = await fetch(`${this.baseURL}/analytics/export/report?${params.toString()}`, {
       headers: {
         ...(this.token && { Authorization: `Bearer ${this.token}` }),
       },
     });
-    
+
     if (!response.ok) {
       throw new Error('Export failed');
     }
-    
+
     return response;
   }
 }

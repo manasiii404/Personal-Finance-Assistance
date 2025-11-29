@@ -1,0 +1,10 @@
+🔍 Inspecting Database Data...
+
+💰 INCOME Transactions found: 26
+Categories present in INCOME transactions: ["Salary","Freelance","Investment","Business","Gifts","Other"]
+
+💸 EXPENSE Transactions found: 134
+Categories present in EXPENSE transactions: ["Food & Dining","Transportation","Shopping","Entertainment","Bills & Utilities","Healthcare","Education","Travel"]
+
+🍔 Food Transactions: 16
+Sample Food Transaction Type: EXPENSE
