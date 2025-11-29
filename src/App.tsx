@@ -13,9 +13,27 @@ import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
 
+import { SMSSetupModal } from "./components/SMSSetupModal";
+
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [showSMSSetup, setShowSMSSetup] = useState(false);
+
+  // Check for new user registration flag
+  React.useEffect(() => {
+    const shouldShow = localStorage.getItem('showSMSSetup');
+    console.log('App: Checking SMS setup flag:', shouldShow, 'Auth:', isAuthenticated, 'User:', !!user);
+    if (shouldShow === 'true' && isAuthenticated && user) {
+      console.log('App: Showing SMS setup modal');
+      setShowSMSSetup(true);
+    }
+  }, [isAuthenticated, user]);
+
+  const handleCloseSMSSetup = () => {
+    setShowSMSSetup(false);
+    localStorage.removeItem('showSMSSetup');
+  };
 
   const renderActiveComponent = () => {
     switch (activeTab) {
@@ -61,6 +79,16 @@ const AppContent: React.FC = () => {
           <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
             <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
             <main className="ml-64 p-8 animate-fade-in">{renderActiveComponent()}</main>
+
+            {/* SMS Setup Modal for new users */}
+            {showSMSSetup && user && (
+              <SMSSetupModal
+                isOpen={showSMSSetup}
+                onClose={handleCloseSMSSetup}
+                authToken={localStorage.getItem('authToken') || ''}
+                userId={user.id}
+              />
+            )}
           </div>
         </AlertProvider>
       </FinanceProvider>

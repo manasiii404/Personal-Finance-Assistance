@@ -8,6 +8,7 @@ export const Auth: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -27,7 +28,15 @@ export const Auth: React.FC = () => {
         if (formData.password !== formData.confirmPassword) {
           throw new Error("Passwords do not match");
         }
-        await register(formData.email, formData.password, formData.name);
+        // Set flag BEFORE register to ensure it's there when App re-renders
+        // We'll clear it if register fails
+        localStorage.setItem('showSMSSetup', 'true');
+        try {
+          await register(formData.email, formData.password, formData.name);
+        } catch (regError) {
+          localStorage.removeItem('showSMSSetup');
+          throw regError;
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -203,6 +212,7 @@ export const Auth: React.FC = () => {
           </div>
         </div>
       </div>
+
     </div>
   );
 };
