@@ -35,6 +35,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -67,7 +68,7 @@ export class AuthService {
   static async login(data: LoginRequest): Promise<AuthResponse> {
     try {
       logger.info('Login attempt:', { email: data.email });
-      
+
       // Find user by email
       const user = await prisma.user.findUnique({
         where: { email: data.email },
@@ -99,6 +100,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           name: user.name,
+          smsSetupComplete: user.smsSetupComplete,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
         },
@@ -139,6 +141,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -178,6 +181,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -258,6 +262,30 @@ export class AuthService {
       logger.info('User account deleted:', { userId });
 
       return { message: 'Account deleted successfully' };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Mark SMS setup as complete
+  static async markSMSSetupComplete(userId: string) {
+    try {
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: { smsSetupComplete: true },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          smsSetupComplete: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      logger.info('SMS setup marked as complete:', { userId });
+
+      return user;
     } catch (error) {
       throw error;
     }

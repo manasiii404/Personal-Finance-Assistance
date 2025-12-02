@@ -5,6 +5,7 @@ interface User {
   id: string;
   email: string;
   name?: string;
+  smsSetupComplete?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,6 +23,7 @@ interface AuthContextType {
     newPassword: string
   ) => Promise<void>;
   deleteAccount: (password: string) => Promise<void>;
+  markSMSSetupComplete: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -143,6 +145,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const markSMSSetupComplete = async () => {
+    try {
+      const response = await apiService.markSMSSetupComplete();
+      if (response.success && response.data) {
+        setUser(response.data);
+      } else {
+        throw new Error(response.message || "SMS setup completion failed");
+      }
+    } catch (error) {
+      console.error("SMS setup completion error:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -155,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         updateProfile,
         changePassword,
         deleteAccount,
+        markSMSSetupComplete,
       }}
     >
       {children}

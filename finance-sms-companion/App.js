@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Button, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Button, Alert, ActivityIndicator, PermissionsAndroid, Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SMS from 'expo-sms';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 import axios from 'axios';
@@ -18,15 +17,54 @@ export default function App() {
   const [isSetup, setIsSetup] = useState(false);
   const [authToken, setAuthToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [smsPermissionGranted, setSmsPermissionGranted] = useState(false);
 
   useEffect(() => {
     checkSetupStatus();
+    requestSMSPermission();
   }, []);
+
+  const requestSMSPermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+          PermissionsAndroid.PERMISSIONS.READ_SMS,
+        ]);
+        
+        const smsGranted = 
+          granted['android.permission.RECEIVE_SMS'] === PermissionsAndroid.RESULTS.GRANTED &&
+          granted['android.permission.READ_SMS'] === PermissionsAndroid.RESULTS.GRANTED;
+        
+        setSmsPermissionGranted(smsGranted);
+        
+        console.log('SMS Permission granted:', smsGranted);
+        
+        if (smsGranted) {
+          Alert.alert(
+            'SMS Permission Granted',
+            'The app can now automatically capture bank transaction SMS.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert(
+            'SMS Permission Required',
+            'Please grant SMS permissions to enable automatic transaction capture.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (err) {
+        console.warn('SMS permission error:', err);
+      }
+    }
+  };
 
   const checkSetupStatus = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const setupComplete = await AsyncStorage.getItem('setupComplete');
+      
+      console.log('Setup check - Token:', !!token, 'Setup:', setupComplete);
       
       if (token && setupComplete === 'true') {
         setAuthToken(token);
@@ -102,9 +140,25 @@ export default function App() {
         <View style={styles.statusContainer}>
           <Text style={styles.statusText}>Status: Active</Text>
           <Text style={styles.infoText}>
-            The app runs in the background. You can close it now.
+            Device linked successfully.
           </Text>
+          <Text style={[styles.infoText, { marginTop: 10, fontWeight: '600' }]}>
+            SMS Permission: {smsPermissionGranted ? '✅ Granted' : '❌ Not Granted'}
+          </Text>
+          {!smsPermissionGranted && (
+            <Text style={[styles.infoText, { color: '#EF4444', marginTop: 5 }]}>
+              Please grant SMS permissions to capture transactions!
+            </Text>
+          )}
         </View>
+        {!smsPermissionGranted && (
+          <Button
+            title="Grant SMS Permissions"
+            color="#10B981"
+            onPress={requestSMSPermission}
+          />
+        )}
+        <View style={{ marginTop: 10 }} />
         <Button
           title="Unlink Device"
           color="#EF4444"

@@ -20,19 +20,16 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [showSMSSetup, setShowSMSSetup] = useState(false);
 
-  // Check for new user registration flag
+  // Check if user needs to setup SMS (only for new users who haven't completed setup)
   React.useEffect(() => {
-    const shouldShow = localStorage.getItem('showSMSSetup');
-    console.log('App: Checking SMS setup flag:', shouldShow, 'Auth:', isAuthenticated, 'User:', !!user);
-    if (shouldShow === 'true' && isAuthenticated && user) {
-      console.log('App: Showing SMS setup modal');
+    if (isAuthenticated && user && user.smsSetupComplete === false) {
+      console.log('App: User needs SMS setup, showing modal');
       setShowSMSSetup(true);
     }
   }, [isAuthenticated, user]);
 
   const handleCloseSMSSetup = () => {
     setShowSMSSetup(false);
-    localStorage.removeItem('showSMSSetup');
   };
 
   const renderActiveComponent = () => {

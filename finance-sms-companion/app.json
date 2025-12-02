@@ -42,7 +42,21 @@
         {
           "cameraPermission": "Allow Finance SMS Companion to access camera for QR code scanning."
         }
-      ]
-    ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "./plugins/withSMSTracking"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "dcb65aae-2017-4da7-a233-c8fbe9908521"
+      }
+    }
   }
 }

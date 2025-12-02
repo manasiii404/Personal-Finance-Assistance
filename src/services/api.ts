@@ -126,6 +126,12 @@ class ApiService {
     });
   }
 
+  async markSMSSetupComplete() {
+    return this.request('/auth/sms-setup-complete', {
+      method: 'PUT',
+    });
+  }
+
   // Transaction endpoints
   async getTransactions(filters?: {
     search?: string;

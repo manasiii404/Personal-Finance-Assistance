@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Download, Smartphone } from 'lucide-react';
 import QRCode from 'react-qr-code';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SMSSetupModalProps {
     isOpen: boolean;
@@ -16,6 +17,7 @@ export const SMSSetupModal: React.FC<SMSSetupModalProps> = ({
     userId,
 }) => {
     const [qrData, setQrData] = useState('');
+    const { markSMSSetupComplete } = useAuth();
 
     useEffect(() => {
         if (authToken && userId) {
@@ -27,6 +29,17 @@ export const SMSSetupModal: React.FC<SMSSetupModalProps> = ({
             setQrData(data);
         }
     }, [authToken, userId]);
+
+    const handleSetupComplete = async () => {
+        try {
+            await markSMSSetupComplete();
+            onClose();
+        } catch (error) {
+            console.error('Failed to mark SMS setup as complete:', error);
+            // Still close the modal even if the API call fails
+            onClose();
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -115,7 +128,7 @@ export const SMSSetupModal: React.FC<SMSSetupModalProps> = ({
                                 <div>
                                     <p className="font-semibold text-slate-900">Done!</p>
                                     <p className="text-sm text-slate-600">
-                                        SMS will auto-sync in the background
+                                        SMS will auto-sync in real-time
                                     </p>
                                 </div>
                             </div>
@@ -148,8 +161,16 @@ export const SMSSetupModal: React.FC<SMSSetupModalProps> = ({
 
                 <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm text-blue-800">
-                        <strong>Note:</strong> The companion app runs in the background and only forwards
-                        bank transaction SMS. Your privacy is protected - no other messages are accessed.
+                        <strong>Real-time Detection:</strong> The companion app monitors incoming SMS in real-time.
+                        When a bank transaction SMS is received, it's immediately forwarded to your account and
+                        appears in your transactions. No manual refresh needed!
+                    </p>
+                </div>
+
+                <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-800">
+                        <strong>Privacy Protected:</strong> The app only forwards bank transaction SMS.
+                        No other messages are accessed or sent to our servers.
                     </p>
                 </div>
 
@@ -161,7 +182,7 @@ export const SMSSetupModal: React.FC<SMSSetupModalProps> = ({
                         Skip for Now
                     </button>
                     <button
-                        onClick={onClose}
+                        onClick={handleSetupComplete}
                         className="btn-primary"
                     >
                         I've Set It Up
