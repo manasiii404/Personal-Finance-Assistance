@@ -10,15 +10,14 @@ interface CurrencyContextType {
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
-// Exchange rates (in a real app, this would come from an API)
+// Exchange rates - All rates are FROM INR (1 INR = X currency)
+// Database stores all amounts in INR, we convert for display
 const exchangeRates: { [key: string]: number } = {
-  'USD': 1,
-  'EUR': 0.85,
-  'GBP': 0.73,
-  'INR': 83.12,
-  'JPY': 149.50,
-  'CAD': 1.36,
-  'AUD': 1.53,
+  'INR': 1,           // Base currency
+  'USD': 0.0112,      // 1 INR = 0.0112 USD (₹89.5 per USD)
+  'EUR': 0.0097,      // 1 INR = 0.0097 EUR (₹103.2 per EUR)
+  'GBP': 0.0085,      // 1 INR = 0.0085 GBP (₹118.3 per GBP)
+  'CAD': 0.0158,      // 1 INR = 0.0158 CAD (₹63.5 per CAD)
 };
 
 const currencySymbols: { [key: string]: string } = {
@@ -26,9 +25,7 @@ const currencySymbols: { [key: string]: string } = {
   'EUR': '€',
   'GBP': '£',
   'INR': '₹',
-  'JPY': '¥',
   'CAD': 'C$',
-  'AUD': 'A$',
 };
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -49,19 +46,25 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const formatAmount = (amount: number): string => {
     const symbol = currencySymbols[currency] || '₹';
-    return `${symbol}${Math.abs(amount).toLocaleString('en-IN', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
+
+    // Convert from INR (database storage) to selected currency
+    const convertedAmount = amount * exchangeRates[currency];
+
+    return `${symbol}${Math.abs(convertedAmount).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     })}`;
   };
 
   const convertAmount = async (amount: number, fromCurrency: string, toCurrency: string): Promise<number> => {
     if (fromCurrency === toCurrency) return amount;
-    
-    // Convert to USD first, then to target currency
-    const usdAmount = amount / exchangeRates[fromCurrency];
-    const convertedAmount = usdAmount * exchangeRates[toCurrency];
-    
+
+    // Convert from source currency to INR first
+    const inrAmount = amount / exchangeRates[fromCurrency];
+
+    // Then convert from INR to target currency
+    const convertedAmount = inrAmount * exchangeRates[toCurrency];
+
     return convertedAmount;
   };
 

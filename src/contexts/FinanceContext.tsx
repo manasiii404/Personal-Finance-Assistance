@@ -99,14 +99,22 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
     setError(null);
 
     try {
+      console.log('🔄 Fetching transactions, budgets, and goals...');
       const [transactionsRes, budgetsRes, goalsRes] = await Promise.all([
         apiService.getTransactions({ limit: 100 }),
         apiService.getBudgets(),
         apiService.getGoals(),
       ]);
 
+      console.log('📊 Transactions response:', transactionsRes);
+      console.log('💰 Budgets response:', budgetsRes);
+      console.log('🎯 Goals response:', goalsRes);
+
       if (transactionsRes.success) {
+        console.log(`✅ Setting ${transactionsRes.data?.length || 0} transactions`);
         setTransactions(transactionsRes.data || []);
+      } else {
+        console.error('❌ Transactions fetch failed:', transactionsRes);
       }
 
       if (budgetsRes.success) {
@@ -118,19 +126,19 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load data");
-      console.error("Error loading data:", err);
+      console.error("❌ Error loading data:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   const totalIncome = transactions
-    .filter((t) => t.type === "income")
+    .filter((t) => t.type.toUpperCase() === "INCOME")
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalExpenses = Math.abs(
     transactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => t.type.toUpperCase() === "EXPENSE")
       .reduce((sum, t) => sum + t.amount, 0)
   );
 

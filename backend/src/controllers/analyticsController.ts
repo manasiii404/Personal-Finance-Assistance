@@ -137,31 +137,55 @@ export class AnalyticsController {
   static getMonthlyTrends = asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { months = 6 } = req.query;
+    const monthsCount = parseInt(months as string);
 
-    // This would typically fetch historical data
-    // For now, we'll return mock data
     const trends = [];
     const currentDate = new Date();
 
-    for (let i = parseInt(months as string) - 1; i >= 0; i--) {
+    // Fetch all transactions for the time period
+    const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - monthsCount + 1, 1);
+    const allTransactions = await TransactionService.getTransactions(userId, {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: currentDate.toISOString().split('T')[0],
+      page: 1,
+      limit: 10000,
+    });
+
+    // Group transactions by month
+    for (let i = monthsCount - 1; i >= 0; i--) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
       const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
 
-      // Mock data - in real implementation, fetch from database
+      // Filter transactions for this month
+      const monthTransactions = allTransactions.data.filter((t: any) => {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= monthStart && transactionDate <= monthEnd;
+      });
+
+      // Calculate income and expenses for this month
+      const income = monthTransactions
+        .filter((t: any) => t.type.toUpperCase() === 'INCOME')
+        .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+      const expenses = Math.abs(monthTransactions
+        .filter((t: any) => t.type.toUpperCase() === 'EXPENSE')
+        .reduce((sum: number, t: any) => sum + t.amount, 0));
+
+      const savings = income - expenses;
+      const savingsRate = income > 0 ? (savings / income) * 100 : 0;
+
       trends.push({
         month: monthName,
-        income: 4500 + Math.random() * 1000,
-        expenses: 3000 + Math.random() * 800,
-        savings: 0, // Will be calculated
-        savingsRate: 0, // Will be calculated
+        income,
+        expenses,
+        savings,
+        savingsRate,
       });
     }
 
-    // Calculate savings and savings rate
-    trends.forEach(trend => {
-      trend.savings = trend.income - trend.expenses;
-      trend.savingsRate = trend.income > 0 ? (trend.savings / trend.income) * 100 : 0;
-    });
+    logger.info(`Monthly trends calculated for user ${userId}: ${trends.length} months`);
 
     res.json({
       success: true,
@@ -175,54 +199,35 @@ export class AnalyticsController {
     const userId = (req as any).user.id;
     const { startDate, endDate, type } = req.query;
 
-    console.log('Analytics: getCategoryBreakdown called');
-    console.log('Analytics: Full query object:', req.query);
-    console.log('Analytics: type parameter:', type);
-    console.log('Analytics: type typeof:', typeof type);
-    console.log('Analytics: type value (stringified):', JSON.stringify(type));
-
     let spendingByCategory;
     const isIncome = type && (type as string).toLowerCase() === 'income';
 
-    console.log('Analytics: isIncome check result:', isIncome);
-    console.log('Analytics: type.toLowerCase():', type ? (type as string).toLowerCase() : 'undefined');
-
     if (isIncome) {
-      console.log('Analytics: ✅ ENTERING INCOME BRANCH');
       // Get income by category
       const transactions = await TransactionService.getTransactions(userId, {
         startDate: startDate as string,
         endDate: endDate as string,
-        type: 'income',
+        type: 'income',  // Lowercase - TransactionService converts to uppercase internally
         page: 1,
         limit: 1000,
       });
 
-      console.log(`Analytics: Fetched ${transactions.data.length} income transactions`);
-      if (transactions.data.length > 0) {
-        console.log('Analytics: Sample transaction:', {
-          id: transactions.data[0].id,
-          type: transactions.data[0].type,
-          category: transactions.data[0].category,
-          amount: transactions.data[0].amount
-        });
-        const categories = [...new Set(transactions.data.map((t: any) => t.category))];
-        console.log('Analytics: Unique categories found:', categories);
-      }
-
       const incomeByCategory = transactions.data.reduce((acc: any, transaction: any) => {
-        acc[transaction.category] = (acc[transaction.category] || 0) + transaction.amount;
+        if (!acc[transaction.category]) {
+          acc[transaction.category] = { amount: 0, count: 0 };
+        }
+        acc[transaction.category].amount += transaction.amount;
+        acc[transaction.category].count += 1;
         return acc;
       }, {});
 
-      spendingByCategory = Object.entries(incomeByCategory).map(([category, amount]) => ({
+      spendingByCategory = Object.entries(incomeByCategory).map(([category, data]: [string, any]) => ({
         category,
-        amount: amount as number,
+        amount: data.amount,
         percentage: 0, // Will be calculated
-        transactionCount: 0, // Will be calculated
+        transactionCount: data.count,
       }));
     } else {
-      console.log('Analytics: ❌ ENTERING EXPENSE BRANCH (default)');
       spendingByCategory = await TransactionService.getSpendingByCategory(
         userId,
         startDate as string,

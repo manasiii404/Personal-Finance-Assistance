@@ -1,19 +1,13 @@
 import React, { useState } from "react";
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  Smartphone, 
-  Database, 
-  Download, 
-  Save, 
-  Eye, 
+import {
+  User,
+  Shield,
+  Database,
+  Save,
+  Eye,
   EyeOff,
   Trash2,
-  Mail,
-  MessageSquare,
-  CreditCard,
-  Upload
+  Download
 } from "lucide-react";
 import { useAlerts } from "../contexts/AlertContext";
 import { useCurrency } from "../contexts/CurrencyContext";
@@ -31,20 +25,7 @@ export const Settings: React.FC = () => {
   const [profile, setProfile] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    timezone: "Asia/Kolkata",
     currency: currency,
-  });
-
-  // Notification settings
-  const [notifications, setNotifications] = useState({
-    email: true,
-    sms: false,
-    push: true,
-    whatsapp: false,
-    budgetAlerts: true,
-    goalReminders: true,
-    weeklyReports: true,
-    monthlyReports: true,
   });
 
   // Security settings
@@ -52,24 +33,11 @@ export const Settings: React.FC = () => {
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
-    twoFactorAuth: false,
-    biometricAuth: true,
-    sessionTimeout: "30",
-  });
-
-  // Integration settings
-  const [integrations, setIntegrations] = useState({
-    bankSync: true,
-    smsParser: true,
-    autoCategories: true,
-    realTimeAlerts: true,
   });
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
-    { id: "notifications", label: "Notifications", icon: Bell },
     { id: "security", label: "Security", icon: Shield },
-    { id: "integrations", label: "Integrations", icon: Smartphone },
     { id: "data", label: "Data Management", icon: Database },
   ];
 
@@ -81,13 +49,12 @@ export const Settings: React.FC = () => {
         email: profile.email,
       });
 
-      // Update currency context when currency changes
+      // Update currency context
       setCurrency(profile.currency);
 
-      // Save to localStorage for immediate use
+      // Save to localStorage
       localStorage.setItem('userPreferences', JSON.stringify({
         currency: profile.currency,
-        timezone: profile.timezone
       }));
 
       addAlert({
@@ -104,14 +71,6 @@ export const Settings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSaveNotifications = () => {
-    addAlert({
-      type: "success",
-      title: "Notification Settings Updated",
-      message: "Your notification preferences have been saved",
-    });
   };
 
   const handleSaveSecurity = async () => {
@@ -139,7 +98,6 @@ export const Settings: React.FC = () => {
         });
 
         setSecurity({
-          ...security,
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
@@ -154,40 +112,48 @@ export const Settings: React.FC = () => {
       } finally {
         setLoading(false);
       }
-    } else {
-      addAlert({
-        type: "success",
-        title: "Security Settings Updated",
-        message: "Your security settings have been updated successfully",
-      });
     }
   };
 
-  const handleExportData = () => {
-    // Simulate data export
-    const data = {
-      profile,
-      notifications,
-      exportDate: new Date().toISOString(),
-    };
+  const handleExportData = async (format: 'json' | 'csv') => {
+    setLoading(true);
+    try {
+      // Fetch all data from API
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/transactions/export/data?format=${format}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `finance-ai-settings-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
 
-    addAlert({
-      type: "success",
-      title: "Data Exported",
-      message: "Your settings have been exported successfully",
-    });
+      // Get the blob
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `finance-data-${new Date().toISOString().split("T")[0]}.${format}`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      addAlert({
+        type: "success",
+        title: "Data Exported",
+        message: `Your data has been exported successfully as ${format.toUpperCase()}`,
+      });
+    } catch (error) {
+      addAlert({
+        type: "error",
+        title: "Export Failed",
+        message: "Failed to export data. Please try again.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -270,24 +236,6 @@ export const Settings: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Timezone
-                  </label>
-                  <select
-                    value={profile.timezone}
-                    onChange={(e) =>
-                      setProfile({ ...profile, timezone: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="Asia/Kolkata">India Standard Time (IST)</option>
-                    <option value="America/New_York">Eastern Time</option>
-                    <option value="America/Chicago">Central Time</option>
-                    <option value="America/Denver">Mountain Time</option>
-                    <option value="America/Los_Angeles">Pacific Time</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Currency
                   </label>
                   <select
@@ -298,10 +246,10 @@ export const Settings: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="INR">Indian Rupee (₹)</option>
-                    <option value="USD">US Dollar (USD)</option>
-                    <option value="EUR">Euro (EUR)</option>
-                    <option value="GBP">British Pound (GBP)</option>
-                    <option value="CAD">Canadian Dollar (CAD)</option>
+                    <option value="USD">US Dollar ($)</option>
+                    <option value="EUR">Euro (€)</option>
+                    <option value="GBP">British Pound (£)</option>
+                    <option value="CAD">Canadian Dollar (C$)</option>
                   </select>
                 </div>
               </div>
@@ -315,154 +263,6 @@ export const Settings: React.FC = () => {
               >
                 <Save className="h-4 w-4" />
                 <span>{loading ? "Saving..." : "Save Changes"}</span>
-              </button>
-            </div>
-          </div>
-        );
-
-      case "notifications":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Notification Channels
-              </h3>
-              <div className="space-y-4">
-                {[
-                  {
-                    key: "email",
-                    label: "Email Notifications",
-                    icon: Mail,
-                    description: "Receive notifications via email",
-                  },
-                  {
-                    key: "sms",
-                    label: "SMS Notifications",
-                    icon: Smartphone,
-                    description: "Get text message alerts",
-                  },
-                  {
-                    key: "push",
-                    label: "Push Notifications",
-                    icon: Bell,
-                    description: "Browser push notifications",
-                  },
-                  {
-                    key: "whatsapp",
-                    label: "WhatsApp Notifications",
-                    icon: MessageSquare,
-                    description: "WhatsApp message alerts",
-                  },
-                ].map(({ key, label, icon: Icon, description }) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-white rounded-lg">
-                        <Icon className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-gray-900">{label}</h5>
-                        <p className="text-sm text-gray-600">{description}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() =>
-                        setNotifications({
-                          ...notifications,
-                          [key]:
-                            !notifications[key as keyof typeof notifications],
-                        })
-                      }
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                        notifications[key as keyof typeof notifications]
-                          ? "bg-blue-600"
-                          : "bg-gray-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                          notifications[key as keyof typeof notifications]
-                            ? "translate-x-6"
-                            : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Alert Types
-              </h3>
-              <div className="space-y-4">
-                {[
-                  {
-                    key: "budgetAlerts",
-                    label: "Budget Alerts",
-                    description: "Get notified when approaching budget limits",
-                  },
-                  {
-                    key: "goalReminders",
-                    label: "Goal Reminders",
-                    description: "Regular updates on goal progress",
-                  },
-                  {
-                    key: "weeklyReports",
-                    label: "Weekly Reports",
-                    description: "Weekly spending summaries",
-                  },
-                  {
-                    key: "monthlyReports",
-                    label: "Monthly Reports",
-                    description: "Comprehensive monthly reports",
-                  },
-                ].map(({ key, label, description }) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <h5 className="font-medium text-gray-900">{label}</h5>
-                      <p className="text-sm text-gray-600">{description}</p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        setNotifications({
-                          ...notifications,
-                          [key]:
-                            !notifications[key as keyof typeof notifications],
-                        })
-                      }
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                        notifications[key as keyof typeof notifications]
-                          ? "bg-blue-600"
-                          : "bg-gray-300"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                          notifications[key as keyof typeof notifications]
-                            ? "translate-x-6"
-                            : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                onClick={handleSaveNotifications}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-              >
-                <Save className="h-4 w-4" />
-                <span>Save Preferences</span>
               </button>
             </div>
           </div>
@@ -537,94 +337,6 @@ export const Settings: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Authentication Settings
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <h5 className="font-medium text-gray-900">
-                      Two-Factor Authentication
-                    </h5>
-                    <p className="text-sm text-gray-600">
-                      Add an extra layer of security with 2FA
-                    </p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      setSecurity({
-                        ...security,
-                        twoFactorAuth: !security.twoFactorAuth,
-                      })
-                    }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                      security.twoFactorAuth ? "bg-blue-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                        security.twoFactorAuth
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div>
-                    <h5 className="font-medium text-gray-900">
-                      Biometric Authentication
-                    </h5>
-                    <p className="text-sm text-gray-600">
-                      Use fingerprint or face recognition
-                    </p>
-                  </div>
-                  <button
-                    onClick={() =>
-                      setSecurity({
-                        ...security,
-                        biometricAuth: !security.biometricAuth,
-                      })
-                    }
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                      security.biometricAuth ? "bg-blue-600" : "bg-gray-300"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                        security.biometricAuth
-                          ? "translate-x-6"
-                          : "translate-x-1"
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Session Timeout (minutes)
-                  </label>
-                  <select
-                    value={security.sessionTimeout}
-                    onChange={(e) =>
-                      setSecurity({
-                        ...security,
-                        sessionTimeout: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="15">15 minutes</option>
-                    <option value="30">30 minutes</option>
-                    <option value="60">1 hour</option>
-                    <option value="120">2 hours</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
             <div className="flex justify-end">
               <button
                 onClick={handleSaveSecurity}
@@ -632,152 +344,8 @@ export const Settings: React.FC = () => {
                 className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="h-4 w-4" />
-                <span>{loading ? "Updating..." : "Update Security"}</span>
+                <span>{loading ? "Updating..." : "Update Password"}</span>
               </button>
-            </div>
-          </div>
-        );
-
-      case "integrations":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                MCP Integration Settings
-              </h3>
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
-                <h4 className="font-medium text-blue-900 mb-2">
-                  Multi-Channel Protocol (MCP)
-                </h4>
-                <p className="text-sm text-blue-700">
-                  MCP enables real-time financial monitoring and intelligent
-                  automation across multiple channels.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                {[
-                  {
-                    key: "bankSync",
-                    label: "Bank Account Sync",
-                    description:
-                      "Automatically sync transactions from bank accounts",
-                  },
-                  {
-                    key: "smsParser",
-                    label: "SMS Transaction Parser",
-                    description:
-                      "Parse bank SMS notifications for transactions",
-                  },
-                  {
-                    key: "autoCategories",
-                    label: "Auto-Categorization",
-                    description:
-                      "Automatically categorize transactions using AI",
-                  },
-                  {
-                    key: "realTimeAlerts",
-                    label: "Real-time Alerts",
-                    description:
-                      "Instant notifications for financial activities",
-                  },
-                ].map(({ key, label, description }) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <h5 className="font-medium text-gray-900">{label}</h5>
-                      <p className="text-sm text-gray-600">{description}</p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <span
-                        className={`px-2 py-1 text-xs rounded-full ${
-                          integrations[key as keyof typeof integrations]
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {integrations[key as keyof typeof integrations]
-                          ? "Active"
-                          : "Inactive"}
-                      </span>
-                      <button
-                        onClick={() =>
-                          setIntegrations({
-                            ...integrations,
-                            [key]:
-                              !integrations[key as keyof typeof integrations],
-                          })
-                        }
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${
-                          integrations[key as keyof typeof integrations]
-                            ? "bg-blue-600"
-                            : "bg-gray-300"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
-                            integrations[key as keyof typeof integrations]
-                              ? "translate-x-6"
-                              : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Connected Accounts
-              </h3>
-              <div className="space-y-3">
-                {[
-                  {
-                    name: "Chase Bank",
-                    type: "Checking",
-                    status: "Connected",
-                    lastSync: "2 minutes ago",
-                  },
-                  {
-                    name: "Wells Fargo",
-                    type: "Savings",
-                    status: "Connected",
-                    lastSync: "5 minutes ago",
-                  },
-                  {
-                    name: "American Express",
-                    type: "Credit Card",
-                    status: "Connected",
-                    lastSync: "1 hour ago",
-                  },
-                ].map((account, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <CreditCard className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h5 className="font-medium text-gray-900">
-                          {account.name}
-                        </h5>
-                        <p className="text-sm text-gray-600">
-                          {account.type} • Last sync: {account.lastSync}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full">
-                      {account.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         );
@@ -787,106 +355,60 @@ export const Settings: React.FC = () => {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Data Export & Import
+                Data Export
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <div className="text-center">
-                    <Download className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      Export Data
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Download all your financial data in JSON format
+              <div className="p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <div className="text-center">
+                  <Download className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                  <h4 className="font-medium text-gray-900 mb-2">
+                    Export All Data
+                  </h4>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Download all your transactions, budgets, and goals
+                  </p>
+                  <div className="flex justify-center gap-3">
+                    <button
+                      onClick={() => handleExportData('json')}
+                      disabled={loading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50"
+                    >
+                      {loading ? 'Exporting...' : 'Export as JSON'}
+                    </button>
+                    <button
+                      onClick={() => handleExportData('csv')}
+                      disabled={loading}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 disabled:opacity-50"
+                    >
+                      {loading ? 'Exporting...' : 'Export as CSV'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Danger Zone
+              </h3>
+              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                <div className="flex items-start space-x-3">
+                  <Trash2 className="h-5 w-5 text-red-600 mt-0.5" />
+                  <div className="flex-1">
+                    <h5 className="font-medium text-red-900">
+                      Delete Account
+                    </h5>
+                    <p className="text-sm text-red-700 mt-1 mb-3">
+                      Permanently delete your account and all associated data.
+                      This action cannot be undone.
                     </p>
                     <button
-                      onClick={handleExportData}
-                      className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                      onClick={handleDeleteAccount}
+                      disabled={loading}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Export All Data
+                      {loading ? "Deleting..." : "Delete Account"}
                     </button>
                   </div>
-                </div>
-
-                <div className="p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                  <div className="text-center">
-                    <Upload className="h-8 w-8 text-gray-400 mx-auto mb-3" />
-                    <h4 className="font-medium text-gray-900 mb-2">
-                      Import Data
-                    </h4>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Import financial data from a backup file
-                    </p>
-                    <button className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
-                      Import Data
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Data Management
-              </h3>
-              <div className="space-y-4">
-                <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <div className="flex items-start space-x-3">
-                    <Database className="h-5 w-5 text-yellow-600 mt-0.5" />
-                    <div>
-                      <h5 className="font-medium text-yellow-900">
-                        Data Retention
-                      </h5>
-                      <p className="text-sm text-yellow-700 mt-1">
-                        Your financial data is stored securely and retained
-                        according to your preferences. You can configure
-                        retention periods for different types of data.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <div className="flex items-start space-x-3">
-                    <Trash2 className="h-5 w-5 text-red-600 mt-0.5" />
-                    <div className="flex-1">
-                      <h5 className="font-medium text-red-900">
-                        Delete Account
-                      </h5>
-                      <p className="text-sm text-red-700 mt-1 mb-3">
-                        Permanently delete your account and all associated data.
-                        This action cannot be undone.
-                      </p>
-                      <button
-                        onClick={handleDeleteAccount}
-                        disabled={loading}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {loading ? "Deleting..." : "Delete Account"}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Privacy & Compliance
-              </h3>
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h5 className="font-medium text-blue-900 mb-2">
-                  Data Protection
-                </h5>
-                <div className="text-sm text-blue-700 space-y-1">
-                  <p>
-                    • All financial data is encrypted at rest and in transit
-                  </p>
-                  <p>
-                    • MCP protocols ensure secure multi-channel communication
-                  </p>
-                  <p>• Regular security audits and compliance checks</p>
-                  <p>• GDPR and CCPA compliant data handling</p>
                 </div>
               </div>
             </div>
@@ -904,7 +426,7 @@ export const Settings: React.FC = () => {
       <div>
         <h1 className="text-4xl font-bold text-gradient bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-600 bg-clip-text text-transparent">Settings</h1>
         <p className="text-slate-600 mt-2 text-lg font-medium">
-          Manage your account preferences and system configuration
+          Manage your account preferences and settings
         </p>
       </div>
 
@@ -918,11 +440,10 @@ export const Settings: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                    activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === tab.id
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>

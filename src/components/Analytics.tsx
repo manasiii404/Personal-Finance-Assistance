@@ -12,9 +12,7 @@ import {
   Target,
   Zap,
   Award,
-  AlertCircle,
-  CheckCircle2,
-  Lightbulb
+  AlertCircle
 } from 'lucide-react';
 import { Chart } from './ui/Chart';
 import apiService from '../services/api';
@@ -119,16 +117,9 @@ export const Analytics: React.FC = () => {
 
         // Fetch income by category with date range
         const incomeResponse = await apiService.getCategoryBreakdown(startDate, endDate, 'income');
-        console.log('🔍 RAW API RESPONSE:', incomeResponse);
-        console.log('🔍 Request params:', { startDate, endDate, type: 'income' });
-
         if (incomeResponse.success && incomeResponse.data) {
-          console.log('🔍 RAW INCOME DATA (NO FILTER):', incomeResponse.data);
-
-          // TEMPORARILY REMOVED FILTER TO DEBUG
           setIncomeByCategory(incomeResponse.data as CategoryData[]);
         } else {
-          console.log('❌ API call failed or returned no data:', incomeResponse);
           setIncomeByCategory([]);
         }
         setLoading(false);
@@ -602,12 +593,6 @@ export const Analytics: React.FC = () => {
                   <p>No income data available. Income categories will appear here.</p>
                 </div>
               )}
-            </div>
-
-            {/* DEBUG SECTION - REMOVE LATER */}
-            <div className="mt-8 p-4 bg-slate-900 text-green-400 rounded-lg overflow-auto max-h-60 text-xs font-mono">
-              <p className="font-bold mb-2">DEBUG DATA (Income Categories):</p>
-              <pre>{JSON.stringify(incomeByCategory, null, 2)}</pre>
             </div>
           </div>
         </div>

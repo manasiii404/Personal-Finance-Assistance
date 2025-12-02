@@ -99,6 +99,7 @@ export const analyticsFiltersSchema = Joi.object({
   startDate: Joi.date().iso().optional(),
   endDate: Joi.date().iso().optional(),
   period: Joi.string().valid('week', 'month', 'quarter', 'year').optional(),
+  type: Joi.string().valid('income', 'expense').optional(),  // Added for category breakdown
 });
 
 // Export validation
