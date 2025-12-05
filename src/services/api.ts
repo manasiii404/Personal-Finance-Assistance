@@ -101,6 +101,22 @@ class ApiService {
     return response;
   }
 
+  async setupSMS(deviceId: string) {
+    return this.request('/auth/setup-sms', {
+      method: 'POST',
+      body: JSON.stringify({ deviceId }),
+    });
+  }
+
+  // AI Insights
+  async getAIInsights() {
+    return this.request('/ai-insights');
+  }
+
+  async getAIInsightsStatus() {
+    return this.request('/ai-insights/status');
+  }
+
   async getProfile() {
     return this.request('/auth/profile');
   }

@@ -50,7 +50,7 @@ export const Budget: React.FC = () => {
   // Budget spending is automatically updated by the backend when transactions are created/updated/deleted
   // The backend's TransactionService.updateBudgetSpending() handles this in real-time
   // No need for frontend to manually calculate and update
-  
+
   /* COMMENTED OUT - Backend handles budget updates automatically
   useEffect(() => {
     if (budgets.length === 0 || transactions.length === 0) return;
@@ -70,30 +70,37 @@ export const Budget: React.FC = () => {
 
   // Calculate budget insights
   const totalBudget = budgets
-    .filter((b) => b.period.toLowerCase() === selectedPeriod)
+    .filter((b) => b.period?.toLowerCase() === selectedPeriod)
     .reduce((sum, b) => sum + b.limit, 0);
   const totalSpent = budgets
-    .filter((b) => b.period.toLowerCase() === selectedPeriod)
+    .filter((b) => b.period?.toLowerCase() === selectedPeriod)
     .reduce((sum, b) => sum + b.spent, 0);
   const remainingBudget = totalBudget - totalSpent;
 
-  // Budget chart data
+  // Budget chart data - remove duplicates
   const budgetChartData = budgets
-    .filter(b => b.period.toLowerCase() === selectedPeriod)
-    .map(budget => ({
-      name: budget.category,
-      value: budget.spent
-    }));
+    .filter(b => b.period?.toLowerCase() === selectedPeriod)
+    .reduce((acc, budget) => {
+      // Check if category already exists
+      const existing = acc.find(item => item.name === budget.category);
+      if (!existing) {
+        acc.push({
+          name: budget.category,
+          value: budget.spent
+        });
+      }
+      return acc;
+    }, [] as Array<{ name: string; value: number }>);
 
   // Get overspent budgets
   const overspentBudgets = budgets.filter(
-    (b) => b.spent > b.limit && b.period.toLowerCase() === selectedPeriod
+    (b) => b.spent > b.limit && b.period?.toLowerCase() === selectedPeriod
   );
 
   // Get budgets near limit (>80%)
   const nearLimitBudgets = budgets.filter((b) => {
     const percentage = (b.spent / b.limit) * 100;
-    return percentage > 80 && percentage <= 100 && b.period.toLowerCase() === selectedPeriod;
+    return percentage > 80 && percentage <= 100 && b.period?.toLowerCase() === selectedPeriod;
   });
 
   const handleAddBudget = async () => {
@@ -164,7 +171,7 @@ export const Budget: React.FC = () => {
       // Always include the period in the update - backend expects exact case
       updateData.period = (editingBudget.period || 'monthly').toLowerCase();
 
-      
+
       await updateBudget(editingBudget.id, updateData);
 
       addAlert({
@@ -186,7 +193,7 @@ export const Budget: React.FC = () => {
     }
   };
 
-  const filteredBudgets = budgets.filter((b) => b.period.toLowerCase() === selectedPeriod);
+  const filteredBudgets = budgets.filter((b) => b.period?.toLowerCase() === selectedPeriod);
 
   return (
     <div className="space-y-6">
@@ -220,11 +227,10 @@ export const Budget: React.FC = () => {
               <button
                 key={period}
                 onClick={() => setSelectedPeriod(period)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                  selectedPeriod === period
-                    ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg glow-purple"
-                    : "bg-white/20 backdrop-blur-sm text-slate-900 border border-white/20"
-                }`}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${selectedPeriod === period
+                  ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg glow-purple"
+                  : "bg-white/20 backdrop-blur-sm text-slate-900 border border-white/20"
+                  }`}
               >
                 {period.charAt(0).toUpperCase() + period.slice(1)}
               </button>
@@ -277,9 +283,8 @@ export const Budget: React.FC = () => {
             <div>
               <p className="text-sm font-bold text-slate-900">Remaining</p>
               <p
-                className={`text-3xl font-bold text-gradient ${
-                  remainingBudget >= 0 ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-red-400 to-pink-400"
-                } bg-clip-text text-transparent`}
+                className={`text-3xl font-bold text-gradient ${remainingBudget >= 0 ? "bg-gradient-to-r from-green-400 to-emerald-400" : "bg-gradient-to-r from-red-400 to-pink-400"
+                  } bg-clip-text text-transparent`}
               >
                 {formatAmount(remainingBudget)}
               </p>
@@ -290,23 +295,20 @@ export const Budget: React.FC = () => {
                   <AlertTriangle className="h-5 w-5 text-red-400" />
                 )}
                 <span
-                  className={`text-sm font-semibold ${
-                    remainingBudget >= 0 ? "text-green-300" : "text-red-300"
-                  }`}
+                  className={`text-sm font-semibold ${remainingBudget >= 0 ? "text-green-300" : "text-red-300"
+                    }`}
                 >
                   {remainingBudget >= 0 ? "Under budget" : "Over budget"}
                 </span>
               </div>
             </div>
             <div
-              className={`p-3 rounded-xl backdrop-blur-sm border ${
-                remainingBudget >= 0 ? "bg-green-500/20 border-green-400/30 glow-green" : "bg-red-500/20 border-red-400/30 glow-red"
-              }`}
+              className={`p-3 rounded-xl backdrop-blur-sm border ${remainingBudget >= 0 ? "bg-green-500/20 border-green-400/30 glow-green" : "bg-red-500/20 border-red-400/30 glow-red"
+                }`}
             >
               <PiggyBank
-                className={`h-7 w-7 ${
-                  remainingBudget >= 0 ? "text-green-400" : "text-red-400"
-                }`}
+                className={`h-7 w-7 ${remainingBudget >= 0 ? "text-green-400" : "text-red-400"
+                  }`}
               />
             </div>
           </div>
@@ -322,7 +324,7 @@ export const Budget: React.FC = () => {
               <h3 className="text-xl font-bold text-gradient bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent mb-3">
                 Budget Alerts
               </h3>
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                 {overspentBudgets.map((budget) => (
                   <div
                     key={budget.id}
@@ -355,21 +357,31 @@ export const Budget: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card-glass-purple p-8 glow-purple">
           <h3 className="text-xl font-bold text-gradient-purple mb-6">Budget Spending Distribution</h3>
-          <Chart data={budgetChartData} type="pie" />
+          <div className="h-80">
+            <Chart data={budgetChartData} type="pie" />
+          </div>
         </div>
-        
+
         <div className="card-glass-blue p-8 glow-blue">
           <h3 className="text-xl font-bold text-gradient-blue mb-6">Budget vs Spending</h3>
-          <Chart 
-            data={budgets
-              .filter(b => b.period.toLowerCase() === selectedPeriod)
-              .map(budget => ({
-                name: budget.category,
-                income: budget.limit,
-                expenses: budget.spent
-              }))} 
-            type="bar" 
-          />
+          <div className="h-80">
+            <Chart
+              data={budgets
+                .filter(b => b.period?.toLowerCase() === selectedPeriod)
+                .reduce((acc, budget) => {
+                  const existing = acc.find(item => item.name === budget.category);
+                  if (!existing) {
+                    acc.push({
+                      name: budget.category,
+                      income: budget.limit,
+                      expenses: budget.spent
+                    });
+                  }
+                  return acc;
+                }, [] as Array<{ name: string; income: number; expenses: number }>)}
+              type="bar"
+            />
+          </div>
         </div>
       </div>
 
@@ -382,7 +394,7 @@ export const Budget: React.FC = () => {
           </h3>
         </div>
 
-        <div className="divide-y divide-white/10">
+        <div className="divide-y divide-white/10 max-h-96 overflow-y-auto">
           {filteredBudgets.map((budget) => {
             const percentage = (budget.spent / budget.limit) * 100;
             const isOverBudget = percentage > 100;
@@ -395,17 +407,16 @@ export const Budget: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
-                    <h4 className="text-xl font-bold text-gradient bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                    <h4 className="text-xl font-bold text-gradient bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent truncate max-w-xs">
                       {budget.category}
                     </h4>
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border ${
-                        isOverBudget
-                          ? "bg-red-500/20 text-red-900 border-red-400/30 glow-red"
-                          : isNearLimit
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border ${isOverBudget
+                        ? "bg-red-500/20 text-red-900 border-red-400/30 glow-red"
+                        : isNearLimit
                           ? "bg-orange-500/20 text-orange-900 border-orange-400/30 glow-orange"
                           : "bg-green-500/20 text-green-900 border-green-400/30 glow-green"
-                      }`}
+                        }`}
                     >
                       {percentage.toFixed(1)}% used
                     </span>
@@ -435,13 +446,12 @@ export const Budget: React.FC = () => {
                 <div className="relative">
                   <div className="w-full bg-white/20 backdrop-blur-sm rounded-full h-4 border border-white/30">
                     <div
-                      className={`h-4 rounded-full transition-all duration-500 shadow-lg ${
-                        isOverBudget
-                          ? "bg-gradient-to-r from-red-500 to-pink-500 glow-red"
-                          : isNearLimit
+                      className={`h-4 rounded-full transition-all duration-500 shadow-lg ${isOverBudget
+                        ? "bg-gradient-to-r from-red-500 to-pink-500 glow-red"
+                        : isNearLimit
                           ? "bg-gradient-to-r from-orange-500 to-yellow-500 glow-orange"
                           : "bg-gradient-to-r from-green-500 to-emerald-500 glow-green"
-                      }`}
+                        }`}
                       style={{ width: `${Math.min(percentage, 100)}%` }}
                     />
                   </div>
@@ -592,7 +602,7 @@ export const Budget: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={`$${editingBudget.spent.toFixed(2)}`}
+                  value={formatAmount(editingBudget.spent)}
                   disabled
                   className="input-glass w-full opacity-60"
                 />

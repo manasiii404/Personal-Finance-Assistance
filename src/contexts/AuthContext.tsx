@@ -5,6 +5,7 @@ interface User {
   id: string;
   email: string;
   name?: string;
+  phone?: string;
   smsSetupComplete?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -15,9 +16,9 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, password: string, name?: string, phone?: string) => Promise<void>;
   logout: () => void;
-  updateProfile: (userData: { name?: string; email?: string }) => Promise<void>;
+  updateProfile: (userData: { name?: string; email?: string; phone?: string }) => Promise<void>;
   changePassword: (
     currentPassword: string,
     newPassword: string
@@ -79,9 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (email: string, password: string, name?: string, phone?: string) => {
     try {
-      const response = await apiService.register({ email, password, name });
+      const response = await apiService.register({ email, password, name, phone });
       if (response.success && response.data) {
         setUser(response.data.user);
         apiService.setToken(response.data.token);

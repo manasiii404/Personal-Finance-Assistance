@@ -30,11 +30,13 @@ export class AuthService {
           email: data.email,
           password: hashedPassword,
           name: data.name,
+          phone: data.phone,
         },
         select: {
           id: true,
           email: true,
           name: true,
+          phone: true,
           smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,
@@ -100,6 +102,7 @@ export class AuthService {
           id: user.id,
           email: user.email,
           name: user.name,
+          phone: user.phone,
           smsSetupComplete: user.smsSetupComplete,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
@@ -141,6 +144,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          phone: true,
           smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,
@@ -158,7 +162,7 @@ export class AuthService {
   }
 
   // Update user profile
-  static async updateProfile(userId: string, data: { name?: string; email?: string }) {
+  static async updateProfile(userId: string, data: { name?: string; email?: string; phone?: string }) {
     try {
       // Check if email is already taken by another user
       if (data.email) {
@@ -181,6 +185,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          phone: true,
           smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,
@@ -277,6 +282,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          phone: true,
           smsSetupComplete: true,
           createdAt: true,
           updatedAt: true,

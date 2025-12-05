@@ -3,7 +3,7 @@ import { TrendingUp, TrendingDown, DollarSign, Target, PiggyBank, Calendar, User
 import apiService from '../services/api';
 import { FamilyBudgets } from './FamilyBudgets';
 import { FamilyGoals } from './FamilyGoals';
-import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
+import { ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar, ComposedChart, Line } from 'recharts';
 import { useCurrency } from '../contexts/CurrencyContext';
 import { useSocket } from '../contexts/SocketContext';
 
@@ -343,22 +343,16 @@ export const FamilyDataDashboard: React.FC<FamilyDataProps> = ({ familyId, permi
                     {/* Member Contributions (Goal Breakdown) - Stacked Bar Chart */}
                     <div className="bg-white/70 backdrop-blur-lg rounded-3xl p-6 shadow-xl border border-white/50">
                         <h3 className="text-xl font-bold text-gray-800 mb-2">Goal Contributions by Member</h3>
-                        <p className="text-sm text-gray-600 mb-4">Breakdown of goals supported by each member</p>
-                        {summary.memberStats && summary.memberStats.length > 0 ? (
+                        <p className="text-sm text-gray-600 mb-4">Member contributions across family goals</p>
+                        {summary.goalContributionsByGoal && summary.goalContributionsByGoal.length > 0 ? (
                             <ResponsiveContainer width="100%" height={350}>
-                                <BarChart
-                                    data={summary.memberStats.map((member: any) => {
-                                        const data: any = { name: member.memberName };
-                                        member.goalDetail?.forEach((g: any) => {
-                                            data[g.title] = g.amount;
-                                        });
-                                        return data;
-                                    })}
+                                <ComposedChart
+                                    data={summary.goalContributionsByGoal}
                                     margin={{ top: 10, right: 30, left: 20, bottom: 10 }}
                                 >
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                     <XAxis
-                                        dataKey="name"
+                                        dataKey="goalName"
                                         stroke="#6b7280"
                                         style={{ fontSize: '13px', fontWeight: '500' }}
                                     />
@@ -368,7 +362,7 @@ export const FamilyDataDashboard: React.FC<FamilyDataProps> = ({ familyId, permi
                                         style={{ fontSize: '12px' }}
                                     />
                                     <Tooltip
-                                        formatter={(value: any, name: string) => [formatAmount(value), name]}
+                                        formatter={(value: any) => formatAmount(value)}
                                         contentStyle={{
                                             backgroundColor: 'rgba(255, 255, 255, 0.95)',
                                             borderRadius: '12px',
@@ -378,21 +372,21 @@ export const FamilyDataDashboard: React.FC<FamilyDataProps> = ({ familyId, permi
                                         }}
                                         labelStyle={{ fontWeight: 'bold', marginBottom: '8px', color: '#1f2937' }}
                                     />
-                                    <Legend
-                                        wrapperStyle={{ paddingTop: '10px' }}
-                                        iconType="circle"
-                                    />
-                                    {/* Dynamically create bars for each unique goal title */}
-                                    {Array.from(new Set(summary.memberStats.flatMap((m: any) => m.goalDetail?.map((g: any) => g.title) || []))).map((title: any, index: number) => (
-                                        <Bar
-                                            key={title}
-                                            dataKey={title}
-                                            stackId="a"
-                                            fill={['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'][index % 6]}
-                                            radius={index === (new Set(summary.memberStats.flatMap((m: any) => m.goalDetail?.map((g: any) => g.title) || [])).size) - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
+                                    <Legend wrapperStyle={{ paddingTop: '10px' }} iconType="line" />
+                                    {/* Create a line for each member */}
+                                    {summary.members && summary.members.map((member: any, index: number) => (
+                                        <Line
+                                            key={member.user.name}
+                                            type="monotone"
+                                            dataKey={member.user.name}
+                                            stroke={['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'][index % 6]}
+                                            strokeWidth={3}
+                                            dot={{ fill: ['#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'][index % 6], r: 5 }}
+                                            activeDot={{ r: 7 }}
+                                            name={member.user.name}
                                         />
                                     ))}
-                                </BarChart>
+                                </ComposedChart>
                             </ResponsiveContainer>
 
                         ) : (

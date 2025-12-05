@@ -35,8 +35,18 @@ export class AIInsightsService {
   private genAI: GoogleGenerativeAI | null = null;
 
   constructor() {
+    console.log('🔍 AI Insights Service - Checking configuration...');
+    console.log('   - Has Gemini API Key:', !!config.geminiApiKey);
+    console.log('   - Key length:', config.geminiApiKey?.length || 0);
+    console.log('   - AI Insights Enabled:', config.aiInsightsEnabled);
+
     if (config.geminiApiKey && config.aiInsightsEnabled) {
       this.genAI = new GoogleGenerativeAI(config.geminiApiKey);
+      console.log('✅ Google Gemini AI initialized successfully!');
+    } else {
+      console.log('❌ AI Insights using fallback mode');
+      if (!config.geminiApiKey) console.log('   Reason: No API key');
+      if (!config.aiInsightsEnabled) console.log('   Reason: Not enabled in config');
     }
   }
 
@@ -66,7 +76,7 @@ export class AIInsightsService {
     // Aggregate spending by category (expenses only)
     const totalsByCategory: Record<string, number> = {};
     const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
-    
+
     expenseTransactions.forEach(transaction => {
       const category = transaction.category || 'Other';
       totalsByCategory[category] = (totalsByCategory[category] || 0) + Math.abs(transaction.amount);
@@ -75,26 +85,26 @@ export class AIInsightsService {
     // Calculate monthly trends (last 6 months)
     const monthlyTrends = [];
     const now = new Date();
-    
+
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthName = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      
+
       const monthTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
         const transactionMonthKey = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
         return transactionMonthKey === monthKey;
       });
-      
+
       const totalIncome = monthTransactions
         .filter(t => t.type === 'INCOME')
         .reduce((sum, t) => sum + t.amount, 0);
-      
+
       const totalExpenses = monthTransactions
         .filter(t => t.type === 'EXPENSE')
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-      
+
       monthlyTrends.push({
         month: monthName,
         totalIncome,
@@ -107,18 +117,18 @@ export class AIInsightsService {
     const totalIncome = transactions
       .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => sum + t.amount, 0);
-    
+
     const totalExpenses = transactions
       .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    
+
     const avgMonthlyIncome = totalIncome / Math.max(monthlyTrends.length, 1);
     const avgMonthlyExpenses = totalExpenses / Math.max(monthlyTrends.length, 1);
     const avgDailySpending = totalExpenses / Math.max(transactions.length / 30, 1);
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
-    
+
     const topCategories = Object.entries(totalsByCategory)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([category]) => category);
 
@@ -149,14 +159,15 @@ export class AIInsightsService {
 
     try {
       const anonymizedData = this.anonymizeTransactionData(transactions);
-      
+
       // Don't generate insights if no meaningful data
       if (anonymizedData.timeframe.totalTransactions === 0) {
         return this.getFallbackInsights();
       }
 
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
-      
+      console.log('🚀 Calling Gemini API...');
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+
       const prompt = this.buildInsightPrompt(anonymizedData);
       const result = await model.generateContent(prompt);
       const response = await result.response;
@@ -170,46 +181,94 @@ export class AIInsightsService {
   }
 
   /**
-   * Build prompt for AI analysis with anonymized data
+   * prompt for AI analysis with anonymized data
    */
   private buildInsightPrompt(data: AnonymizedFinancialData): string {
+    const topCategory = data.spendingPatterns.topCategories[0] || 'Unknown';
+    const topCategoryAmount = data.totalsByCategory[topCategory] || 0;
+
     return `
-As a financial advisor AI, analyze this anonymized spending data and provide 3-4 actionable insights:
+You are a professional financial advisor analyzing a client's spending patterns for the current month. Provide 3-4 highly personalized, data-driven insights.
+
+📊 CURRENT MONTH FINANCIAL DATA:
 
 SPENDING BY CATEGORY:
 ${Object.entries(data.totalsByCategory)
-  .map(([cat, amount]) => `- ${cat}: $${amount.toFixed(2)}`)
-  .join('\n')}
+        .sort(([, a], [, b]) => b - a)
+        .map(([cat, amount]) => `- ${cat}: ${amount.toFixed(2)}`)
+        .join('\n')}
 
-MONTHLY TRENDS (last 6 months):
+MONTHLY TRENDS (Last 6 Months):
 ${data.monthlyTrends
-  .map(m => `- ${m.month}: Income $${m.totalIncome.toFixed(2)}, Expenses $${m.totalExpenses.toFixed(2)}, Net $${m.netIncome.toFixed(2)}`)
-  .join('\n')}
+        .map(m => `- ${m.month}: Income ${m.totalIncome.toFixed(2)}, Expenses ${m.totalExpenses.toFixed(2)}, Savings ${m.netIncome.toFixed(2)}`)
+        .join('\n')}
 
-PATTERNS:
-- Average monthly income: $${data.spendingPatterns.avgMonthlyIncome.toFixed(2)}
-- Average monthly expenses: $${data.spendingPatterns.avgMonthlyExpenses.toFixed(2)}
-- Savings rate: ${data.spendingPatterns.savingsRate.toFixed(1)}%
-- Top spending categories: ${data.spendingPatterns.topCategories.join(', ')}
+KEY METRICS:
+- Average monthly income: ${data.spendingPatterns.avgMonthlyIncome.toFixed(2)}
+- Average monthly expenses: ${data.spendingPatterns.avgMonthlyExpenses.toFixed(2)}
+- Current savings rate: ${data.spendingPatterns.savingsRate.toFixed(1)}%
+- Highest spending: ${topCategory} (${topCategoryAmount.toFixed(2)})
 
-Provide insights in this JSON format:
+🎯 YOUR TASK:
+Generate 3-4 insights that are:
+1. SPECIFIC to this user's actual data (use exact numbers)
+2. ACTIONABLE with clear, practical steps
+3. IMPACTFUL focusing on highest-value opportunities
+4. REALISTIC with achievable targets
+
+📋 INSIGHT REQUIREMENTS:
+
+**Priority Levels:**
+- HIGH: Urgent issues (overspending, low savings rate <15%, budget overruns)
+- MEDIUM: Optimization opportunities (reduce top category, improve savings)
+- LOW: General improvements (minor optimizations, positive reinforcement)
+
+**Content Guidelines:**
+- Titles: 8-12 words, action-oriented (e.g., "Reduce Food Spending by 20% This Month")
+- Messages: 2-3 sentences with specific numbers and clear action steps
+- Always include: current amount, target amount, potential savings
+- Calculate both monthly AND annual impact when relevant
+
+**Example Quality Standards:**
+
+✅ GOOD:
+"${topCategory} spending at ${topCategoryAmount.toFixed(0)} is your highest expense. By reducing discretionary ${topCategory.toLowerCase()} purchases by 15%, you could save ${(topCategoryAmount * 0.15).toFixed(0)} monthly (${(topCategoryAmount * 0.15 * 12).toFixed(0)} annually). Try the 24-hour rule for non-essential purchases."
+
+❌ BAD:
+"You should try to spend less on ${topCategory}."
+
+✅ GOOD:
+"Your savings rate of ${data.spendingPatterns.savingsRate.toFixed(1)}% is below the recommended 20%. Redirect ${((data.spendingPatterns.avgMonthlyIncome * 0.20) - (data.spendingPatterns.avgMonthlyIncome * data.spendingPatterns.savingsRate / 100)).toFixed(0)} monthly from ${topCategory} to reach 20% savings rate."
+
+❌ BAD:
+"Try to save more money each month."
+
+🔢 FORMATTING RULES:
+- Use ONLY plain numbers (2292, 450, 15.5)
+- NO currency symbols ($, ₹, €, £, ¥)
+- Include decimals for precision (15.5%, 450.75)
+- Always show both monthly and annual savings when suggesting reductions
+
+📤 OUTPUT FORMAT:
+Return ONLY valid JSON array with 3-4 insights:
+
 [
   {
     "category": "spending|saving|budgeting|general",
-    "title": "Brief insight title",
-    "message": "Actionable advice (max 100 words)",
+    "title": "Action-oriented title with specific target",
+    "message": "Detailed message with current amount, target, savings potential, and clear action steps.",
     "priority": "high|medium|low",
-    "actionable": true|false
+    "actionable": true
   }
 ]
 
-Focus on:
-1. Spending optimization opportunities
-2. Savings improvement suggestions
-3. Budget allocation recommendations
-4. Financial health observations
+🎯 FOCUS AREAS (in priority order):
+1. If savings rate < 15%: HIGH priority to improve it
+2. Highest spending category: Specific reduction strategies
+3. Month-over-month trends: Highlight improvements or concerns
+4. Quick wins: Easy optimizations with high impact
 
-Keep advice practical and specific to the data patterns.
+Generate insights now:
 `;
   }
 
@@ -225,19 +284,19 @@ Keep advice practical and specific to the data patterns.
       }
 
       const insights = JSON.parse(jsonMatch[0]) as AIInsight[];
-      
+
       // Validate and sanitize insights
       return insights
         .filter(insight => insight.title && insight.message)
-        .slice(0, 4) // Limit to 4 insights
+        .slice(0, 10)
         .map(insight => ({
-          category: ['spending', 'saving', 'budgeting', 'general'].includes(insight.category) 
-            ? insight.category as AIInsight['category'] 
+          category: ['spending', 'saving', 'budgeting', 'general'].includes(insight.category)
+            ? insight.category as AIInsight['category']
             : 'general',
-          title: insight.title.substring(0, 50),
-          message: insight.message.substring(0, 200),
-          priority: ['high', 'medium', 'low'].includes(insight.priority) 
-            ? insight.priority as AIInsight['priority'] 
+          title: insight.title, // No truncation - AI will keep it brief
+          message: insight.message, // No truncation - AI will keep it concise
+          priority: ['high', 'medium', 'low'].includes(insight.priority)
+            ? insight.priority as AIInsight['priority']
             : 'medium',
           actionable: Boolean(insight.actionable)
         }));

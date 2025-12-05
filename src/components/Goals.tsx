@@ -48,7 +48,7 @@ export const Goals: React.FC = () => {
 
   // Calculate goal statistics
   const totalGoalTarget = goals.reduce((sum, goal) => sum + goal.target, 0);
-  
+
   // Real-time goal progress calculation from income
   useEffect(() => {
     if (totalGoalTarget > 0) {
@@ -57,7 +57,7 @@ export const Goals: React.FC = () => {
         const monthlyGoalContribution = totalIncome * 0.1;
         const goalShare = goal.target / totalGoalTarget;
         const newProgress = Math.min(goal.current + (monthlyGoalContribution * goalShare), goal.target);
-        
+
         if (Math.abs(newProgress - goal.current) > 0.01) {
           updateGoal(goal.id, { ...goal, current: newProgress });
         }
@@ -71,18 +71,32 @@ export const Goals: React.FC = () => {
   const overallProgress =
     totalGoalTarget > 0 ? (totalGoalProgress / totalGoalTarget) * 100 : 0;
 
-  // Goal chart data
-  const goalChartData = goals.map(goal => ({
-    name: goal.title,
-    value: goal.current
-  }));
+  // Goal chart data - remove duplicates
+  const goalChartData = goals
+    .reduce((acc, goal) => {
+      const existing = acc.find(item => item.name === goal.title);
+      if (!existing) {
+        acc.push({
+          name: goal.title,
+          value: goal.current
+        });
+      }
+      return acc;
+    }, [] as Array<{ name: string; value: number }>);
 
-  // Progress chart data
-  const progressChartData = goals.map(goal => ({
-    name: goal.title,
-    income: goal.target,
-    expenses: goal.current
-  }));
+  // Progress chart data - remove duplicates
+  const progressChartData = goals
+    .reduce((acc, goal) => {
+      const existing = acc.find(item => item.name === goal.title);
+      if (!existing) {
+        acc.push({
+          name: goal.title,
+          income: goal.target,
+          expenses: goal.current
+        });
+      }
+      return acc;
+    }, [] as Array<{ name: string; income: number; expenses: number }>);
 
   const handleAddGoal = async () => {
     if (
@@ -174,7 +188,7 @@ export const Goals: React.FC = () => {
         addAlert({
           type: "info",
           title: "Contribution Added",
-          message: `$${amount.toFixed(2)} added to "${updatedGoal.title}"`,
+          message: `${formatAmount(amount)} added to "${updatedGoal.title}"`,
         });
       }
 
@@ -192,7 +206,7 @@ export const Goals: React.FC = () => {
     const percentage = (goal.current / goal.target) * 100;
     const daysLeft = Math.ceil(
       (new Date(goal.deadline).getTime() - new Date().getTime()) /
-        (1000 * 60 * 60 * 24)
+      (1000 * 60 * 60 * 24)
     );
 
     if (percentage >= 100)
@@ -303,128 +317,135 @@ export const Goals: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card-glass-purple p-8 glow-purple">
           <h3 className="text-xl font-bold text-gradient-purple mb-6">Goal Progress Distribution</h3>
-          <Chart data={goalChartData} type="pie" />
+          <div className="h-80">
+            <Chart data={goalChartData} type="pie" />
+          </div>
         </div>
-        
+
         <div className="card-glass-blue p-8 glow-blue">
           <h3 className="text-xl font-bold text-gradient-blue mb-6">Target vs Progress</h3>
-          <Chart data={progressChartData} type="bar" />
+          <div className="h-80">
+            <Chart data={progressChartData} type="bar" />
+          </div>
         </div>
       </div>
 
       {/* Goals List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {goals.map((goal) => {
-          const percentage = (goal.current / goal.target) * 100;
-          const daysLeft = Math.ceil(
-            (new Date(goal.deadline).getTime() - new Date().getTime()) /
+        {goals
+          .filter((goal, index, self) =>
+            index === self.findIndex(g => g.title === goal.title)
+          )
+          .map((goal) => {
+            const percentage = (goal.current / goal.target) * 100;
+            const daysLeft = Math.ceil(
+              (new Date(goal.deadline).getTime() - new Date().getTime()) /
               (1000 * 60 * 60 * 24)
-          );
-          const { status, color, icon: StatusIcon } = getGoalStatus(goal);
+            );
+            const { status, color, icon: StatusIcon } = getGoalStatus(goal);
 
-          const colorClasses = {
-            green: "bg-green-500/20 border-green-400/30 text-green-300 backdrop-blur-sm glow-green",
-            red: "bg-red-500/20 border-red-400/30 text-red-300 backdrop-blur-sm glow-red",
-            yellow: "bg-orange-500/20 border-orange-400/30 text-orange-300 backdrop-blur-sm glow-orange",
-            blue: "bg-blue-500/20 border-blue-400/30 text-blue-300 backdrop-blur-sm glow-blue",
-          } as const;
+            const colorClasses = {
+              green: "bg-green-500/20 border-green-400/30 text-green-300 backdrop-blur-sm glow-green",
+              red: "bg-red-500/20 border-red-400/30 text-red-300 backdrop-blur-sm glow-red",
+              yellow: "bg-orange-500/20 border-orange-400/30 text-orange-300 backdrop-blur-sm glow-orange",
+              blue: "bg-blue-500/20 border-blue-400/30 text-blue-300 backdrop-blur-sm glow-blue",
+            } as const;
 
-          return (
-            <div
-              key={goal.id}
-              className="card-glass-rose p-6 glow-rose"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-xl font-bold text-gradient bg-gradient-to-r from-rose-300 to-pink-300 bg-clip-text text-transparent">
-                      {goal.title}
-                    </h3>
-                    <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${colorClasses[color as keyof typeof colorClasses]}`}
-                    >
-                      <StatusIcon className="h-3 w-3 mr-1" />
-                      {status === "completed" && "Completed"}
-                      {status === "overdue" && "Overdue"}
-                      {status === "urgent" && "Urgent"}
-                      {status === "on-track" && "On Track"}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-900 font-bold mb-1">{goal.category}</p>
-                  <div className="flex items-center space-x-4 text-sm text-slate-400">
-                    <span className="flex items-center space-x-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>
-                        {new Date(goal.deadline).toLocaleDateString()}
+            return (
+              <div
+                key={goal.id}
+                className="card-glass-rose p-6 glow-rose"
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h3 className="text-xl font-bold text-gradient bg-gradient-to-r from-rose-300 to-pink-300 bg-clip-text text-transparent truncate max-w-xs">
+                        {goal.title}
+                      </h3>
+                      <span
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${colorClasses[color as keyof typeof colorClasses]}`}
+                      >
+                        <StatusIcon className="h-3 w-3 mr-1" />
+                        {status === "completed" && "Completed"}
+                        {status === "overdue" && "Overdue"}
+                        {status === "urgent" && "Urgent"}
+                        {status === "on-track" && "On Track"}
                       </span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
-                      <span>
-                        {daysLeft > 0 ? `${daysLeft} days left` : "Overdue"}
+                    </div>
+                    <p className="text-sm text-slate-900 font-bold mb-1">{goal.category}</p>
+                    <div className="flex items-center space-x-4 text-sm text-slate-400">
+                      <span className="flex items-center space-x-1">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {new Date(goal.deadline).toLocaleDateString()}
+                        </span>
                       </span>
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() =>
-                      setEditingGoal({
-                        ...goal,
-                        target: goal.target.toString(),
-                      })
-                    }
-                    className="p-2 text-slate-400 rounded-xl backdrop-blur-sm border border-white/20"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-900 font-bold">Progress</span>
-                  <span className="font-bold text-slate-900">
-                    {formatAmount(goal.current)} / {formatAmount(goal.target)}
-                  </span>
-                </div>
-
-                <div className="relative">
-                  <div className="w-full bg-white/20 backdrop-blur-sm rounded-full h-4 border border-white/30">
-                    <div
-                      className={`h-4 rounded-full transition-all duration-500 shadow-lg ${
-                        percentage >= 100 ? "bg-gradient-to-r from-green-500 to-emerald-500 glow-green" : "bg-gradient-to-r from-rose-500 to-pink-500 glow-rose"
-                      }`}
-                      style={{ width: `${Math.min(percentage, 100)}%` }}
-                    />
-                  </div>
-                  <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-slate-900">
-                    {percentage.toFixed(1)}%
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-3">
-                  <div className="text-sm">
-                    <span className="text-slate-900 font-bold">Remaining: </span>
-                    <span className="font-bold text-slate-900">
-                      {formatAmount(Math.max(0, goal.target - goal.current))}
-                    </span>
+                      <span className="flex items-center space-x-1">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {daysLeft > 0 ? `${daysLeft} days left` : "Overdue"}
+                        </span>
+                      </span>
+                    </div>
                   </div>
 
-                  {percentage < 100 && (
+                  <div className="flex space-x-2">
                     <button
-                      onClick={() => setContributionModal(goal)}
-                      className="btn-primary bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-sm px-4 py-2"
+                      onClick={() =>
+                        setEditingGoal({
+                          ...goal,
+                          target: goal.target.toString(),
+                        })
+                      }
+                      className="p-2 text-slate-400 rounded-xl backdrop-blur-sm border border-white/20"
                     >
-                      Add Funds
+                      <Edit className="h-4 w-4" />
                     </button>
-                  )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-900 font-bold">Progress</span>
+                    <span className="font-bold text-slate-900">
+                      {formatAmount(goal.current)} / {formatAmount(goal.target)}
+                    </span>
+                  </div>
+
+                  <div className="relative">
+                    <div className="w-full bg-white/20 backdrop-blur-sm rounded-full h-4 border border-white/30">
+                      <div
+                        className={`h-4 rounded-full transition-all duration-500 shadow-lg ${percentage >= 100 ? "bg-gradient-to-r from-green-500 to-emerald-500 glow-green" : "bg-gradient-to-r from-rose-500 to-pink-500 glow-rose"
+                          }`}
+                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 text-xs font-bold text-slate-900">
+                      {percentage.toFixed(1)}%
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3">
+                    <div className="text-sm">
+                      <span className="text-slate-900 font-bold">Remaining: </span>
+                      <span className="font-bold text-slate-900">
+                        {formatAmount(Math.max(0, goal.target - goal.current))}
+                      </span>
+                    </div>
+
+                    {percentage < 100 && (
+                      <button
+                        onClick={() => setContributionModal(goal)}
+                        className="btn-primary bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-sm px-4 py-2"
+                      >
+                        Add Funds
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* Add Goal Modal */}
@@ -622,8 +643,7 @@ export const Goals: React.FC = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Current Progress:</span>
                   <span className="font-medium">
-                    ${contributionModal.current.toFixed(2)} / $
-                    {contributionModal.target.toFixed(2)}
+                    {formatAmount(contributionModal.current)} / {formatAmount(contributionModal.target)}
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
@@ -632,7 +652,7 @@ export const Goals: React.FC = () => {
                     style={{
                       width: `${Math.min(
                         (contributionModal.current / contributionModal.target) *
-                          100,
+                        100,
                         100
                       )}%`,
                     }}
@@ -658,11 +678,10 @@ export const Goals: React.FC = () => {
                 <p className="text-sm text-blue-700">
                   After this contribution, you'll have{" "}
                   <span className="font-medium">
-                    $
-                    {(
+                    {formatAmount(
                       contributionModal.current +
                       (parseFloat(contribution) || 0)
-                    ).toFixed(2)}
+                    )}
                   </span>{" "}
                   towards your goal.
                 </p>

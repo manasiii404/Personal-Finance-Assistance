@@ -20,6 +20,7 @@ import analyticsRoutes from '@/routes/analytics';
 import mlRoutes from '@/routes/ml';
 import smsRoutes from '@/routes/sms';
 import familyRoutes from '@/routes/family';
+import aiInsightsRoutes from '@/routes/aiInsights';
 
 const app = express();
 const httpServer = createServer(app);
@@ -84,6 +85,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ml', mlRoutes);
 app.use('/api/sms', smsRoutes);
 app.use('/api/family', familyRoutes);
+app.use('/api/ai-insights', aiInsightsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

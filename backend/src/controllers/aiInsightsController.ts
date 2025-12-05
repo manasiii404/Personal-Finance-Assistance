@@ -31,11 +31,16 @@ export class AIInsightsController {
         });
       }
 
-      // Get user's transactions for analysis
+      // Get user's transactions for current month analysis
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
       const transactions = await prisma.transaction.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: 500 // Limit to recent transactions for performance
+        where: {
+          userId,
+          createdAt: { gte: oneMonthAgo }
+        },
+        orderBy: { createdAt: 'desc' }
       });
 
       // Generate insights using AI service

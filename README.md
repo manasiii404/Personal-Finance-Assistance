@@ -7,18 +7,14 @@
 - [Overview](#overview)
 - [Key Features](#key-features)
 - [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
 - [Getting Started](#getting-started)
 - [Core Features](#core-features)
+- [Family Room](#family-room)
+- [SMS Alerts (Twilio)](#sms-alerts-twilio)
+- [ML Features](#ml-features)
 - [API Documentation](#api-documentation)
 - [Database Schema](#database-schema)
-- [ML Features](#ml-features)
-- [Family Room](#family-room)
-- [SMS Companion App](#sms-companion-app)
 - [Security](#security)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
 - [Project Structure](#project-structure)
 
 ---
@@ -29,9 +25,9 @@ This is a production-ready personal finance management system built for the **ED
 
 ### What Makes This Special?
 
-- **AI-Powered**: Machine learning models for automatic categorization and expense forecasting
+- **AI-Powered**: Google Gemini AI for intelligent financial insights and recommendations
 - **Family Collaboration**: Multi-user family rooms with granular permission controls
-- **SMS Integration**: Android companion app for automatic transaction extraction from bank SMS
+- **SMS Alerts**: Twilio integration for budget and goal notifications
 - **Real-Time Updates**: WebSocket-based live data synchronization
 - **Privacy-First**: Granular transaction sharing controls and permission management
 - **Production-Ready**: Complete with authentication, validation, error handling, and testing
@@ -46,952 +42,320 @@ This is a production-ready personal finance management system built for the **ED
 - ✅ **Goal Management**: Create and track financial goals with contribution history
 - ✅ **Analytics Dashboard**: Comprehensive charts and insights
 - ✅ **Smart Alerts**: Notifications for budget limits and goal milestones
-- ✅ **Data Export**: Export transactions to CSV/JSON
+- ✅ **Data Export**: Export transactions to CSV/JSON with detailed information
+- ✅ **Phone Number Collection**: User phone numbers for SMS notifications
+- ✅ **Terms & Conditions**: Mandatory T&C acceptance with privacy policy
 
-### AI & Machine Learning
-- ✅ **Auto-Categorization**: Random Forest ML model (95%+ accuracy)
-- ✅ **Expense Forecasting**: Facebook Prophet time-series predictions
-- ✅ **Spending Insights**: AI-powered financial recommendations
-- ✅ **Pattern Detection**: Seasonal trends and anomaly detection
+### AI-Powered Insights
+- 🤖 **Google Gemini AI**: Intelligent financial analysis and recommendations
+- 📊 **Spending Patterns**: AI-powered spending behavior analysis
+- 💡 **Smart Suggestions**: Personalized saving and budgeting tips
+- 📈 **Trend Analysis**: Identify spending trends and anomalies
+- 🎯 **Goal Recommendations**: AI-suggested financial goals based on spending
 
-### Family Room (Multi-User Collaboration)
-- ✅ **Multi-Room Support**: Create/join multiple family rooms
-- ✅ **Permission System**: VIEW_ONLY or VIEW_EDIT access per member
-- ✅ **Transaction Privacy**: Opt-in transaction sharing with confirmation
-- ✅ **Shared Budgets & Goals**: Collaborative financial planning
-- ✅ **Real-Time Sync**: WebSocket updates for all family members
-- ✅ **Admin Controls**: Role-based access (Creator, Admin, Member)
-- ✅ **Goal Contributions**: Track individual contributions to shared goals
+### Family Room Features
+- 👨‍👩‍👧‍👦 **Family Collaboration**: Create and manage family financial groups
+- 🔐 **Role-Based Access**: Admin and member roles with different permissions
+- 💰 **Family Budgets**: Shared budgets tracked across all family members
+- 🎯 **Family Goals**: Collaborative savings goals with individual contributions
+- 📊 **Contribution Tracking**: Visual charts showing member contributions to family goals
+- 🔄 **Real-Time Sync**: WebSocket updates for instant family data synchronization
+- 📱 **Transaction Sharing**: Optional sharing of personal transactions with family
 
-### SMS Transaction Parsing
-- ✅ **Android Companion App**: React Native app for SMS monitoring
-- ✅ **Automatic Extraction**: Parse bank SMS for transaction details
-- ✅ **QR Code Linking**: Easy device pairing
-- ✅ **Multi-Bank Support**: Works with major Indian banks
-- ✅ **Background Processing**: Automatic sync when SMS received
+### SMS Notifications (Twilio)
+- 📱 **Budget Alerts**: SMS when budget reaches 80% or exceeds limit
+- 🎯 **Goal Milestones**: SMS notifications at 50%, 75%, and 100% goal completion
+- 🔔 **Real-Time Notifications**: Instant alerts for important financial events
+- 🌍 **International Support**: Auto-formats phone numbers (Indian +91 default)
+- ⚙️ **Optional**: Users can enable/disable SMS notifications in settings
 
 ---
 
-## 🛠 Technology Stack
+## 🛠️ Technology Stack
 
 ### Frontend
-- **React 18** - Modern UI library with hooks
-- **TypeScript** - Type-safe development
-- **Vite** - Lightning-fast build tool
-- **Tailwind CSS** - Utility-first styling with glassmorphism
-- **Recharts** - Beautiful, responsive charts
-- **Socket.IO Client** - Real-time WebSocket communication
-- **Lucide React** - Modern icon library
-- **Context API** - State management
+- **React 18** with TypeScript
+- **Tailwind CSS** for styling
+- **Recharts** for data visualization
+- **Lucide React** for icons
+- **Socket.IO Client** for real-time updates
+- **Vite** for build tooling
 
 ### Backend
-- **Node.js 18+** - JavaScript runtime
-- **Express.js** - Web framework
-- **TypeScript** - Type-safe server code
-- **MongoDB** - NoSQL database
-- **Prisma ORM** - Type-safe database client
-- **Socket.IO** - Real-time bidirectional communication
-- **JWT** - Secure authentication tokens
-- **bcryptjs** - Password hashing
-- **Joi** - Input validation
-- **Winston** - Logging
-- **Jest** - Testing framework
+- **Node.js** with Express
+- **TypeScript** for type safety
+- **Prisma ORM** with MongoDB
+- **JWT** for authentication
+- **Socket.IO** for WebSockets
+- **Twilio SDK** for SMS notifications
+- **Google Gemini AI** for insights
 
-### ML Service
-- **Python 3.8+** - ML runtime
-- **FastAPI** - High-performance API framework
-- **scikit-learn** - Random Forest classifier
-- **Facebook Prophet** - Time-series forecasting
-- **pandas** - Data manipulation
-- **numpy** - Numerical computing
+### Database
+- **MongoDB** (Atlas or local)
+- **Prisma** as ORM layer
 
-### SMS Companion App
-- **React Native** - Cross-platform mobile development
-- **Expo** - Development toolchain
-- **Android SMS API** - SMS reading permissions
-
----
-
-## 🏗 Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Frontend (React + TS)                   │
-│  - Dashboard  - Transactions  - Budgets  - Goals            │
-│  - Family Room  - Analytics  - Settings                     │
-└──────────────────┬──────────────────────────────────────────┘
-                   │ HTTP/REST + WebSocket
-┌──────────────────▼──────────────────────────────────────────┐
-│              Backend (Node.js + Express + TS)               │
-│  - Authentication  - Transaction Service  - Family Service  │
-│  - Budget Service  - Goal Service  - Analytics Service      │
-└──────┬─────────────────────────┬────────────────────────────┘
-       │                         │
-       │ HTTP/REST               │ Prisma ORM
-       │                         │
-┌──────▼──────────┐      ┌──────▼──────────┐
-│  ML Service     │      │    MongoDB      │
-│  (Python/FastAPI)│      │   (Database)    │
-│  - Categorizer  │      │  - Users        │
-│  - Forecaster   │      │  - Transactions │
-└─────────────────┘      │  - Budgets      │
-                         │  - Goals        │
-                         │  - Families     │
-                         └─────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│          SMS Companion App (React Native/Android)           │
-│  - SMS Reading  - QR Linking  - Auto-sync                   │
-└─────────────────────────────────────────────────────────────┘
-```
+### Additional Services
+- **Twilio** for SMS alerts
+- **Google Gemini API** for AI insights
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
+- Node.js 18+ and npm
+- MongoDB (Atlas account or local installation)
+- Google Gemini API key (for AI insights)
+- Twilio account (optional, for SMS alerts)
 
-- **Node.js** 18+ and npm
-- **MongoDB** 4.4+ (local or Atlas)
-- **Python** 3.8+ (for ML features)
-- **Android Studio** (for SMS companion app)
+### Installation
 
-### Quick Start
-
-#### 1. Clone the Repository
+1. **Clone the repository**
 ```bash
 git clone <repository-url>
-cd "financial management project"
+cd financial-management-project
 ```
 
-#### 2. Backend Setup
+2. **Install dependencies**
+```bash
+# Install frontend dependencies
+npm install
 
+# Install backend dependencies
+cd backend
+npm install
+```
+
+3. **Set up environment variables**
+
+Create `backend/.env`:
+```env
+# Database
+DATABASE_URL="your_mongodb_connection_string"
+
+# JWT
+JWT_SECRET="your_jwt_secret_key_here"
+JWT_EXPIRES_IN="7d"
+
+# Server
+PORT=3000
+NODE_ENV="development"
+FRONTEND_URL="http://localhost:5173"
+
+# Google Gemini AI
+GEMINI_API_KEY="your_gemini_api_key_here"
+AI_INSIGHTS_ENABLED="true"
+
+# Twilio SMS (Optional)
+TWILIO_ACCOUNT_SID="your_twilio_account_sid"
+TWILIO_AUTH_TOKEN="your_twilio_auth_token"
+TWILIO_PHONE_NUMBER="your_twilio_phone_number_with_country_code"
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=1000
+```
+
+4. **Generate Prisma Client**
 ```bash
 cd backend
+npx prisma generate
+```
 
-# Install dependencies
-npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your configuration:
-# DATABASE_URL="mongodb://localhost:27017/finance_db"
-# JWT_SECRET="your-super-secret-jwt-key"
-# JWT_EXPIRES_IN="7d"
-
-# Generate Prisma client
-npm run db:generate
-
-# Push schema to database
-npm run db:push
-
-# Seed database with demo data
-npm run db:seed
-
-# Start backend server
+5. **Start the application**
+```bash
+# Terminal 1: Start backend
+cd backend
 npm run dev
-# Backend runs on http://localhost:3000
-```
 
-#### 3. Frontend Setup
-
-```bash
-# In project root
-npm install
-
-# Set up environment variables
-echo "VITE_API_URL=http://localhost:3000/api" > .env
-
-# Start frontend
+# Terminal 2: Start frontend
 npm run dev
-# Frontend runs on http://localhost:5173
 ```
 
-#### 4. ML Service Setup (Optional)
-
-```bash
-cd ml-service
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Start ML service
-python main.py
-# ML service runs on http://localhost:8000
-```
-
-#### 5. SMS Companion App (Optional)
-
-```bash
-cd finance-sms-companion
-
-# Install dependencies
-npm install
-
-# Start Expo development server
-npx expo start
-
-# Scan QR code with Expo Go app on Android
-```
-
-### Demo Credentials
-
-```
-Email: demo@example.com
-Password: demo123
-```
+6. **Access the application**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
 
 ---
 
 ## 💡 Core Features
 
-### 1. Transaction Management
+### 1. User Authentication
+- Secure registration with email and password
+- Phone number collection (required)
+- Mandatory Terms & Conditions acceptance
+- Privacy policy for phone number usage
+- JWT-based authentication
+- Password hashing with bcrypt
 
-**Add Transactions**
-- Manual entry with category selection
-- Automatic categorization via ML (if trained)
-- SMS parsing for automatic extraction
-- Support for income and expenses
+### 2. Dashboard
+- Real-time financial overview
+- Income vs Expenses visualization
+- Budget progress tracking
+- Goal completion status
+- AI-powered insights and recommendations
+- Recent transactions list
 
-**View & Filter**
-- Date range filtering
-- Category filtering
-- Search by description
-- Sort by date/amount
+### 3. Transactions
+- Add income/expense transactions
+- Edit transaction categories
+- Filter by type, category, date range
+- Search functionality
+- Bulk operations
+- CSV/JSON export with detailed data
 
-**Edit & Delete**
-- Update transaction details
-- Change categories
-- Soft delete with confirmation
-
-### 2. Budget Management
-
-**Create Budgets**
-- Set limits per category
-- Choose period: Weekly, Monthly, Yearly
-- Track spending automatically
-
-**Budget Monitoring**
-- Real-time progress bars
-- Alert when approaching limit (80%)
-- Alert when limit exceeded
-- Visual indicators (green/yellow/red)
-
-### 3. Goal Tracking
-
-**Personal Goals**
-- Set target amount and deadline
-- Track progress with contributions
+### 4. Budgets
+- Create category-based budgets
+- Real-time spending tracking
 - Visual progress indicators
-- Completion notifications
+- Alert notifications at 80% and 100%
+- Monthly/weekly budget periods
+- Budget vs actual comparison
 
-**Family Goals** (in Family Room)
-- Shared goals with all members
-- Individual contribution tracking
-- Collaborative progress monitoring
+### 5. Goals
+- Personal and family goals
+- Contribution tracking
+- Progress visualization
+- Deadline management
+- Milestone notifications (50%, 75%, 100%)
+- Goal completion celebrations
 
-### 4. Analytics Dashboard
-
-**Overview Cards**
-- Total income (current month)
-- Total expenses (current month)
-- Net savings
-- Active budgets count
-
-**Charts**
-- Spending by category (pie chart)
-- Monthly trends (line chart)
-- Budget vs actual (bar chart)
-- Goal progress (progress bars)
+### 6. Settings
+- Profile management (name, email, phone)
+- Password change
+- SMS notification preferences
+- Data export (JSON/CSV)
+- Account deletion
+- Privacy controls
 
 ---
 
-## 🤝 Family Room
+## 👨‍👩‍👧‍👦 Family Room
 
-The Family Room feature enables collaborative financial management for families, roommates, or any group.
+### Overview
+The Family Room feature enables collaborative financial management for families, allowing members to share budgets, goals, and optionally transactions.
 
-### How It Works
+### Key Features
 
-#### Creating a Family Room
+#### Family Management
+- **Create Family**: Set up a new family group
+- **Invite Members**: Send email invitations to family members
+- **Role Management**: Admin vs Member permissions
+- **Member Removal**: Admins can remove members
 
-1. Navigate to **Family Room** page
-2. Click **"Create Room"**
-3. Enter family name
-4. Receive unique 6-character room code
-5. Share code with family members
+#### Family Budgets
+- **Shared Budgets**: Create budgets tracked across all family members
+- **Automatic Tracking**: Aggregates spending from all members' transactions
+- **Category-Based**: Organize by spending categories
+- **Real-Time Updates**: WebSocket sync across all family members
 
-#### Joining a Family Room
+#### Family Goals
+- **Collaborative Savings**: Create shared financial goals
+- **Individual Contributions**: Track who contributed how much
+- **Contribution Chart**: Visual representation of member contributions
+- **Progress Tracking**: Real-time goal completion percentage
+- **Milestone Alerts**: Notifications at key milestones
 
-1. Navigate to **Family Room** page
-2. Click **"Join Room"**
-3. Enter room code
-4. Select permission level:
-   - **VIEW_ONLY**: See family data, cannot edit
-   - **VIEW_EDIT**: Full access to add/edit data
-5. Wait for creator/admin approval
+#### Family Dashboard
+- **Summary View**: Total income, expenses, and savings rate
+- **Member Statistics**: Income and expenses by member
+- **Spending by Category**: Category breakdown with member details
+- **Goal Contributions Chart**: Multi-line chart showing member contributions across family goals
+- **Budget Progress**: Visual budget tracking
 
-#### Permission System
+#### Privacy Controls
+- **Transaction Sharing**: Optional - members can choose to share or hide transactions
+- **Granular Permissions**: View-only vs edit access
+- **Data Isolation**: Personal data remains private unless explicitly shared
 
-**Roles:**
-- **Creator**: Full control, can delete family
-- **Admin**: Can accept/reject members, manage data
-- **Member**: Access based on chosen permission
+---
 
-**Permissions:**
-- **VIEW_ONLY**: Read-only access to shared data
-- **VIEW_EDIT**: Can add transactions, budgets, goals
+## 📱 SMS Alerts (Twilio)
 
-**Self-Managed**: Members can change their own permissions anytime
+### Setup
 
-#### Transaction Privacy
+1. **Create Twilio Account**
+   - Sign up at [twilio.com/try-twilio](https://www.twilio.com/try-twilio)
+   - Get Account SID, Auth Token, and Phone Number
 
-**Default**: Transactions are private (hidden from family)
+2. **Configure Environment**
+   - Add Twilio credentials to `backend/.env`
+   - See `.env.example` for reference
 
-**Opt-In Sharing:**
-1. Go to Family Room → Transactions tab
-2. Click **"Share My Transactions"**
-3. Confirm in modal dialog
-4. Your transactions now visible to family
+3. **Enable in Settings**
+   - Users can toggle SMS notifications in Settings tab
+   - Phone number required for SMS alerts
 
-**Opt-Out:**
-1. Click **"Hide My Transactions"**
-2. Confirm
-3. Transactions hidden again
+### Alert Types
 
-**Benefits:**
-- Full control over data sharing
-- Explicit consent required
-- Can toggle anytime
-- Clear visual indicators
+#### Budget Alerts
+- **80% Threshold**: Warning when budget is 80% used
+- **100% Exceeded**: Alert when budget limit is exceeded
+- **Example**: "Budget Alert: Your Food budget is 80% used (₹800.00 of ₹1000.00)"
 
-#### Shared Data
+#### Goal Alerts
+- **50% Milestone**: Notification at halfway point
+- **75% Milestone**: Notification at three-quarter mark
+- **100% Completion**: Celebration message when goal is achieved
+- **Example**: "Goal Achieved! 🎉 You've completed your goal 'New Car' with ₹100000.00"
 
-**Family Summary:**
-- Combined income from all members
-- Combined expenses
-- Net family savings
-- Shared goal progress
+### Features
+- **Auto-Formatting**: Converts 10-digit numbers to +91 (Indian format)
+- **Error Handling**: Graceful failure if Twilio not configured
+- **Optional**: Users can disable SMS in settings
+- **Privacy**: Phone numbers used only for alerts, not marketing
 
-**Transactions:**
-- Per-member transaction lists
-- Only from members who opted to share
-- Last 50 transactions per member
-- Member selector tabs
-
-**Budgets & Goals:**
-- Family-wide budgets
-- Shared goals with individual contributions
-- Progress tracking per member
-
-#### Real-Time Updates
-
-**WebSocket Integration:**
-- Instant updates when members join/leave
-- Live transaction additions
-- Real-time permission changes
-- Budget/goal updates
-
-**Events:**
-- `family:member-joined`
-- `family:member-left`
-- `family:transaction-added`
-- `family:permission-changed`
+### Cost
+- **Free Trial**: $15 credit, SMS to verified numbers only
+- **Production**: ~₹0.60 per SMS (India)
+- **Upgrade Required**: For sending to unverified numbers
 
 ---
 
 ## 🤖 ML Features
 
-### 1. Smart Transaction Categorization
+### AI Insights (Google Gemini)
+- **Spending Analysis**: AI-powered analysis of spending patterns
+- **Personalized Recommendations**: Budget and saving suggestions
+- **Trend Detection**: Identify unusual spending or income patterns
+- **Goal Suggestions**: AI-recommended financial goals
+- **Monthly Reports**: Comprehensive AI-generated financial summaries
 
-**How It Works:**
-- Trains Random Forest model on your transaction history
-- Uses TF-IDF text analysis of descriptions
-- Considers time-based features (day, month, hour)
-- Achieves 95%+ accuracy after sufficient training
+### How It Works
+1. System aggregates user's financial data (transactions, budgets, goals)
+2. Sends structured data to Google Gemini AI
+3. AI analyzes patterns and generates insights
+4. Insights displayed in Dashboard with actionable recommendations
 
-**Usage:**
-```bash
-# Train the model (requires 50+ transactions)
-POST /api/ml/train/categorizer
-Authorization: Bearer <token>
-
-# Automatic categorization when creating transactions
-POST /api/transactions
-{
-  "description": "Grocery shopping at Walmart",
-  "amount": -45.50,
-  "date": "2024-12-05",
-  "type": "expense"
-  // Category automatically predicted as "Food"
-}
-```
-
-**Training Requirements:**
-- Minimum: 50 transactions
-- Optimal: 200+ transactions
-- Retraining: Recommended monthly
-
-### 2. Expense Forecasting
-
-**How It Works:**
-- Uses Facebook Prophet time-series model
-- Detects seasonal patterns (holidays, weekends)
-- Provides confidence intervals
-- Category-wise predictions
-
-**Usage:**
-```bash
-# Train forecasting model
-POST /api/ml/train/forecaster
-Authorization: Bearer <token>
-
-# Get next month forecast
-GET /api/ml/forecast/next-month
-Authorization: Bearer <token>
-
-# Response:
-{
-  "total_predicted_expense": 2450.50,
-  "categories": {
-    "Food": { "monthly_total": 850.00 },
-    "Transportation": { "monthly_total": 400.00 }
-  },
-  "insights": [
-    "Your highest predicted expense is Food at $850.00"
-  ]
-}
-```
-
-**Training Requirements:**
-- Minimum: 30 days of transaction data
-- Optimal: 90+ days
-- Forecast range: Up to 90 days ahead
-
-### 3. Training Models
-
-**PowerShell Script (Windows):**
-```powershell
-# Train all models at once
-.\train_models.ps1
-```
-
-**Manual Training:**
-```bash
-# Train both models
-POST /api/ml/train/all
-Authorization: Bearer <token>
-
-# Response:
-{
-  "success": true,
-  "data": {
-    "categorizer": {
-      "accuracy": 0.92,
-      "num_transactions": 150
-    },
-    "forecaster": {
-      "categories_trained": 8
-    }
-  }
-}
-```
+### Privacy
+- Data sent to AI is anonymized
+- No personal identifiers included
+- AI insights stored locally
+- Users can disable AI insights in settings
 
 ---
 
-## 📱 SMS Companion App
-
-### Overview
-
-Android app that automatically extracts transaction data from bank SMS notifications.
-
-### Features
-
-- **Automatic SMS Reading**: Monitors incoming SMS
-- **Bank Pattern Recognition**: Supports major Indian banks
-- **QR Code Linking**: Easy device pairing with web app
-- **Background Sync**: Automatic transaction upload
-- **Privacy-Focused**: SMS data never leaves your device
-
-### Setup
-
-#### 1. Install the App
-
-```bash
-cd finance-sms-companion
-npm install
-npx expo start
-# Scan QR code with Expo Go on Android
-```
-
-#### 2. Link Device
-
-1. Open web app → Settings → SMS Setup
-2. Scan QR code with companion app
-3. Grant SMS permissions on Android
-4. Device linked successfully
-
-#### 3. Usage
-
-- App runs in background
-- Automatically detects bank SMS
-- Parses transaction details
-- Uploads to your account
-- Shows in web app instantly
-
-### Supported SMS Patterns
-
-```
-✅ Credit card transactions
-✅ Debit card purchases
-✅ ATM withdrawals
-✅ UPI payments
-✅ Net banking transfers
-✅ Salary credits
-✅ Bill payments
-```
-
-### Privacy & Security
-
-- SMS data processed locally on device
-- Only transaction details sent to server
-- Encrypted communication
-- Can revoke access anytime
-- No SMS content stored
-
----
-
-## 🔐 Security
+## 🔒 Security
 
 ### Authentication
-
-**JWT-Based:**
-- Secure token generation
-- 7-day expiration (configurable)
-- HTTP-only cookies (optional)
-- Refresh token support
-
-**Password Security:**
-- bcrypt hashing (10 rounds)
-- Minimum 6 characters
-- Password change with verification
-
-### Authorization
-
-**Role-Based Access Control (RBAC):**
-- User-level permissions
-- Family role hierarchy
-- Resource ownership validation
-
-**Permission Checks:**
-- Middleware-based validation
-- Route-level protection
-- Resource-level authorization
+- JWT-based authentication
+- Secure password hashing (bcrypt)
+- Token expiration and refresh
+- Protected API routes
 
 ### Data Protection
-
-**Input Validation:**
-- Joi schema validation
-- Type checking with TypeScript
-- SQL injection prevention
+- Input validation and sanitization
+- SQL injection prevention (Prisma ORM)
 - XSS protection
-
-**Rate Limiting:**
-- 1000 requests per minute per IP
-- Configurable limits
-- DDoS protection
-
-**CORS:**
-- Whitelist-based origins
-- Credential support
-- Preflight handling
-
-### WebSocket Security
-
-**JWT Authentication:**
-- Token verification on connection
-- User identity validation
-- Room-based access control
-
----
-
-## 🧪 Testing
-
-### Backend Tests
-
-```bash
-cd backend
-npm test
-
-# Watch mode
-npm run test:watch
-
-# Coverage
-npm run test:coverage
-```
-
-**Test Coverage:**
-- Authentication service
-- Transaction service
-- Budget service
-- Goal service
-- Family service
-
-### Frontend Tests
-
-```bash
-npm test
-
-# E2E tests
-npm run test:e2e
-```
-
-### Manual Testing
-
-**Test Accounts:**
-```
-User 1: demo@example.com / demo123
-User 2: t1@g.com / password123
-```
-
-**Test Family:**
-- Family Name: "Manasi's Fam"
-- Members: demo@example.com (Admin), t1@g.com (Admin)
-- Has transactions, budgets, and goals
-
----
-
-## 🚀 Deployment
-
-### Production Build
-
-#### Backend
-```bash
-cd backend
-npm run build
-npm start
-```
-
-#### Frontend
-```bash
-npm run build
-# Outputs to dist/
-```
-
-### Environment Variables
-
-**Backend (.env):**
-```env
-NODE_ENV=production
-PORT=3000
-DATABASE_URL=mongodb+srv://user:pass@cluster.mongodb.net/finance_db
-JWT_SECRET=your-production-secret-key
-JWT_EXPIRES_IN=7d
-CORS_ORIGIN=https://yourdomain.com
-```
-
-**Frontend (.env):**
-```env
-VITE_API_URL=https://api.yourdomain.com/api
-```
-
-### Docker Deployment
-
-```bash
-# Build images
-docker-compose build
-
-# Start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Cloud Deployment
-
-**Recommended Platforms:**
-- **Backend**: Heroku, Railway, Render
-- **Frontend**: Vercel, Netlify, Cloudflare Pages
-- **Database**: MongoDB Atlas
-- **ML Service**: AWS Lambda, Google Cloud Run
-
----
-
-## 📊 Database Schema
-
-### Users
-```typescript
-{
-  id: ObjectId
-  email: string (unique)
-  password: string (hashed)
-  name: string?
-  smsSetupComplete: boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-```
-
-### Transactions
-```typescript
-{
-  id: ObjectId
-  userId: ObjectId
-  date: DateTime
-  description: string
-  amount: number
-  category: string
-  type: "INCOME" | "EXPENSE"
-  source: string
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-```
-
-### Budgets
-```typescript
-{
-  id: ObjectId
-  userId: ObjectId
-  familyId: ObjectId?
-  category: string
-  limit: number
-  spent: number
-  period: "WEEKLY" | "MONTHLY" | "YEARLY"
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-```
-
-### Goals
-```typescript
-{
-  id: ObjectId
-  userId: ObjectId
-  familyId: ObjectId?
-  title: string
-  target: number
-  current: number
-  deadline: DateTime
-  category: string
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-```
-
-### Families
-```typescript
-{
-  id: ObjectId
-  name: string
-  roomCode: string (unique, 6 chars)
-  creatorId: ObjectId
-  isActive: boolean
-  createdAt: DateTime
-  updatedAt: DateTime
-}
-```
-
-### FamilyMembers
-```typescript
-{
-  id: ObjectId
-  familyId: ObjectId
-  userId: ObjectId
-  role: "CREATOR" | "ADMIN" | "MEMBER"
-  permissions: "VIEW_ONLY" | "VIEW_EDIT"
-  status: "PENDING" | "ACCEPTED" | "REJECTED"
-  isSharingTransactions: boolean
-  joinedAt: DateTime
-  updatedAt: DateTime
-}
-```
-
-### GoalContributions
-```typescript
-{
-  id: ObjectId
-  goalId: ObjectId
-  userId: ObjectId
-  amount: number
-  date: DateTime
-  createdAt: DateTime
-}
-```
-
----
-
-## 📡 API Documentation
-
-### Authentication Endpoints
-
-```
-POST   /api/auth/register          - Register new user
-POST   /api/auth/login             - Login user
-GET    /api/auth/profile           - Get user profile
-PUT    /api/auth/profile           - Update profile
-PUT    /api/auth/change-password   - Change password
-DELETE /api/auth/account           - Delete account
-```
-
-### Transaction Endpoints
-
-```
-GET    /api/transactions           - Get transactions (with filters)
-POST   /api/transactions           - Create transaction
-PUT    /api/transactions/:id       - Update transaction
-DELETE /api/transactions/:id       - Delete transaction
-POST   /api/transactions/parse-sms - Parse SMS text
-GET    /api/transactions/export    - Export data (CSV/JSON)
-```
-
-### Budget Endpoints
-
-```
-GET    /api/budgets                - Get budgets
-POST   /api/budgets                - Create budget
-PUT    /api/budgets/:id            - Update budget
-DELETE /api/budgets/:id            - Delete budget
-GET    /api/budgets/stats          - Budget statistics
-```
-
-### Goal Endpoints
-
-```
-GET    /api/goals                  - Get goals
-POST   /api/goals                  - Create goal
-PUT    /api/goals/:id              - Update goal
-DELETE /api/goals/:id              - Delete goal
-POST   /api/goals/:id/contribute   - Add contribution
-```
-
-### Family Endpoints
-
-```
-POST   /api/family                         - Create family
-GET    /api/family                         - Get user's families
-POST   /api/family/join                    - Request to join
-GET    /api/family/requests                - Get pending requests
-POST   /api/family/:id/accept/:memberId    - Accept request
-POST   /api/family/:id/reject/:memberId    - Reject request
-DELETE /api/family/:id                     - Delete family
-POST   /api/family/leave                   - Leave family
-PUT    /api/family/my-permissions          - Update own permissions
-POST   /api/family/:id/share-transactions  - Toggle transaction sharing
-```
-
-### Family Data Endpoints
-
-```
-GET    /api/family/:id/summary       - Family financial summary
-GET    /api/family/:id/transactions  - Family transactions (per member)
-GET    /api/family/:id/budgets       - Family budgets
-GET    /api/family/:id/goals         - Family goals
-```
-
-### ML Endpoints
-
-```
-POST   /api/ml/train/categorizer     - Train categorization model
-POST   /api/ml/train/forecaster      - Train forecasting model
-POST   /api/ml/train/all             - Train all models
-POST   /api/ml/categorize/predict    - Predict category
-GET    /api/ml/forecast              - Get expense forecast
-GET    /api/ml/forecast/next-month   - Next month forecast
-GET    /api/ml/status                - Model training status
-```
-
-### Analytics Endpoints
-
-```
-GET    /api/analytics/insights          - Financial insights
-GET    /api/analytics/spending-analysis - Spending analysis
-GET    /api/analytics/monthly-trends    - Monthly trends
-GET    /api/analytics/category-breakdown - Category breakdown
-```
-
----
-
-## 🛠 Troubleshooting
-
-### Common Issues
-
-#### Backend Won't Start
-
-**Error: `Cannot connect to MongoDB`**
-```bash
-# Check MongoDB is running
-mongod --version
-
-# Check DATABASE_URL in .env
-# For local: mongodb://localhost:27017/finance_db
-# For Atlas: mongodb+srv://...
-```
-
-**Error: `Prisma Client not generated`**
-```bash
-cd backend
-npm run db:generate
-```
-
-#### Frontend Build Errors
-
-**Error: `Module not found`**
-```bash
-# Clear cache and reinstall
-rm -rf node_modules package-lock.json
-npm install
-```
-
-**Error: `VITE_API_URL not defined`**
-```bash
-# Create .env file in project root
-echo "VITE_API_URL=http://localhost:3000/api" > .env
-```
-
-#### ML Service Issues
-
-**Error: `Python module not found`**
-```bash
-cd ml-service
-pip install --upgrade -r requirements.txt
-```
-
-**Error: `Models not training`**
-- Ensure you have 50+ transactions
-- Check MongoDB connection
-- Verify transactions have categories
-
-#### Family Room Issues
-
-**Error: `WebSocket connection failed`**
-- Check backend is running
-- Verify CORS settings
-- Check browser console for errors
-
-**Transactions not showing:**
-- Ensure member has VIEW_EDIT permission
-- Check if member enabled transaction sharing
-- Verify transactions exist in database
-
-### Performance Issues
-
-**Slow Dashboard Loading:**
-```bash
-# Check database indexes
-# Optimize queries
-# Enable caching
-```
-
-**High Memory Usage:**
-```bash
-# Limit transaction fetch (currently 50 per member)
-# Implement pagination
-# Clear old alerts
-```
+- CORS configuration
+- Rate limiting
+
+### Privacy
+- Granular permission controls
+- Optional data sharing
+- Phone number privacy policy
+- Terms & Conditions acceptance
+- Data export and deletion rights
 
 ---
 
@@ -999,114 +363,76 @@ pip install --upgrade -r requirements.txt
 
 ```
 financial-management-project/
-├── backend/                      # Node.js backend
+├── backend/
 │   ├── src/
-│   │   ├── config/              # Configuration files
-│   │   ├── controllers/         # Route controllers
-│   │   ├── middleware/          # Express middleware
-│   │   ├── routes/              # API routes
-│   │   ├── services/            # Business logic
-│   │   ├── types/               # TypeScript types
-│   │   ├── utils/               # Utility functions
-│   │   ├── server.ts            # Express app setup
-│   │   └── websocket.ts         # Socket.IO setup
+│   │   ├── config/          # Configuration files
+│   │   ├── controllers/     # Request handlers
+│   │   ├── middleware/      # Auth, error handling
+│   │   ├── routes/          # API routes
+│   │   ├── services/        # Business logic
+│   │   │   ├── twilioNotificationService.ts  # SMS alerts
+│   │   │   ├── AIInsightsService.ts         # Gemini AI
+│   │   │   ├── familyGoalService.ts         # Family goals
+│   │   │   └── ...
+│   │   ├── types/           # TypeScript types
+│   │   └── utils/           # Helper functions
 │   ├── prisma/
-│   │   ├── schema.prisma        # Database schema
-│   │   └── seed.js              # Database seeding
-│   ├── tests/                   # Jest tests
+│   │   └── schema.prisma    # Database schema
+│   ├── .env                 # Environment variables
 │   └── package.json
-│
-├── src/                         # React frontend
-│   ├── components/              # React components
-│   │   ├── Dashboard.tsx
-│   │   ├── Transactions.tsx
-│   │   ├── Budgets.tsx
-│   │   ├── Goals.tsx
-│   │   ├── FamilyRoom.tsx
-│   │   ├── FamilyDataDashboard.tsx
-│   │   ├── Analytics.tsx
-│   │   └── Settings.tsx
-│   ├── contexts/                # React contexts
-│   │   ├── AuthContext.tsx
-│   │   ├── AlertContext.tsx
-│   │   ├── CurrencyContext.tsx
-│   │   └── SocketContext.tsx
-│   ├── services/
-│   │   └── api.ts               # API client
-│   ├── App.tsx                  # Main app component
-│   └── main.tsx                 # Entry point
-│
-├── ml-service/                  # Python ML service
-│   ├── services/
-│   │   ├── transaction_categorizer.py
-│   │   └── expense_forecaster.py
-│   ├── main.py                  # FastAPI app
-│   ├── config.py                # ML configuration
-│   └── requirements.txt
-│
-├── finance-sms-companion/       # React Native app
-│   ├── App.tsx
+├── src/
 │   ├── components/
-│   └── package.json
-│
-├── package.json                 # Frontend dependencies
-├── vite.config.ts              # Vite configuration
-├── tailwind.config.js          # Tailwind CSS config
-└── README.md                   # This file
+│   │   ├── Auth.tsx                    # Login/Signup with T&C
+│   │   ├── Dashboard.tsx               # Main dashboard
+│   │   ├── FamilyRoom.tsx              # Family management
+│   │   ├── FamilyDataDashboard.tsx     # Family analytics
+│   │   ├── FamilyGoals.tsx             # Family goals
+│   │   ├── Settings.tsx                # User settings
+│   │   └── ui/
+│   │       └── TermsModal.tsx          # T&C modal
+│   ├── contexts/
+│   │   ├── AuthContext.tsx             # Auth state
+│   │   ├── SocketContext.tsx           # WebSocket
+│   │   └── CurrencyContext.tsx         # Currency
+│   ├── services/
+│   │   └── api.ts                      # API client
+│   └── App.tsx
+├── README.md
+└── package.json
 ```
 
 ---
 
-## 🎓 Learning Outcomes
+## 🎓 Academic Context
 
-This project demonstrates:
+This project was developed for the **EDAI (Emerging Domain in AI)** course at VIT, demonstrating:
 
-✅ **Full-Stack Development**: React + Node.js + MongoDB  
-✅ **TypeScript**: Type-safe frontend and backend  
-✅ **Machine Learning Integration**: Python ML service with REST API  
-✅ **Real-Time Communication**: WebSocket with Socket.IO  
-✅ **Mobile Development**: React Native companion app  
-✅ **Database Design**: MongoDB with Prisma ORM  
-✅ **Authentication & Authorization**: JWT + RBAC  
-✅ **API Design**: RESTful endpoints with validation  
-✅ **State Management**: React Context API  
-✅ **Testing**: Jest for backend, React Testing Library  
-✅ **Deployment**: Docker, cloud platforms  
+- **AI Integration**: Google Gemini for intelligent insights
+- **Real-Time Systems**: WebSocket implementation
+- **Full-Stack Development**: React + Node.js + MongoDB
+- **Third-Party APIs**: Twilio SMS integration
+- **Database Design**: Prisma ORM with MongoDB
+- **Security Best Practices**: Authentication, authorization, data protection
+- **User Experience**: Responsive design, real-time updates, intuitive UI
 
 ---
 
 ## 📝 License
 
-This project is licensed under the MIT License.
+This project is developed for educational purposes as part of the EDAI course at VIT.
 
 ---
 
 ## 👥 Contributors
 
-- **Manasi R. Mhatre** - VIT Student (EDAI Course Project)
+- **Manasi R. Mhatre** - VIT Student
 
 ---
 
 ## 🙏 Acknowledgments
 
-- VIT University for the EDAI course
-- OpenAI for AI integration guidance
-- Facebook Prophet for time-series forecasting
-- Socket.IO for real-time communication
-- Prisma for excellent ORM
-
----
-
-## 📞 Support
-
-For issues or questions:
-1. Check this README
-2. Review the troubleshooting section
-3. Check the API documentation
-4. Create an issue in the repository
-
----
-
-**Built with ❤️ for the EDAI course at VIT University**
-
-*Last Updated: December 5, 2024*
+- VIT EDAI Course Faculty
+- Google Gemini AI
+- Twilio SMS Platform
+- MongoDB Atlas
+- Open Source Community

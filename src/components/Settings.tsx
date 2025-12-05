@@ -20,11 +20,14 @@ export const Settings: React.FC = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [exportingJson, setExportingJson] = useState(false);
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   // Profile settings
   const [profile, setProfile] = useState({
     name: user?.name || "",
     email: user?.email || "",
+    phone: user?.phone || "",
     currency: currency,
   });
 
@@ -47,6 +50,7 @@ export const Settings: React.FC = () => {
       await updateProfile({
         name: profile.name,
         email: profile.email,
+        phone: profile.phone,
       });
 
       // Update currency context
@@ -116,12 +120,13 @@ export const Settings: React.FC = () => {
   };
 
   const handleExportData = async (format: 'json' | 'csv') => {
-    setLoading(true);
+    const setLoadingState = format === 'json' ? setExportingJson : setExportingCsv;
+    setLoadingState(true);
     try {
       // Fetch all data from API
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/transactions/export/data?format=${format}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
         },
       });
 
@@ -152,7 +157,7 @@ export const Settings: React.FC = () => {
         message: "Failed to export data. Please try again.",
       });
     } finally {
-      setLoading(false);
+      setLoadingState(false);
     }
   };
 
@@ -226,6 +231,21 @@ export const Settings: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    value={profile.phone}
+                    onChange={(e) =>
+                      setProfile({ ...profile, phone: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="10-digit phone number"
+                    pattern="[0-9]{10}"
+                  />
+                </div>
               </div>
             </div>
 
@@ -265,7 +285,7 @@ export const Settings: React.FC = () => {
                 <span>{loading ? "Saving..." : "Save Changes"}</span>
               </button>
             </div>
-          </div>
+          </div >
         );
 
       case "security":
@@ -369,17 +389,17 @@ export const Settings: React.FC = () => {
                   <div className="flex justify-center gap-3">
                     <button
                       onClick={() => handleExportData('json')}
-                      disabled={loading}
+                      disabled={exportingJson || exportingCsv}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50"
                     >
-                      {loading ? 'Exporting...' : 'Export as JSON'}
+                      {exportingJson ? 'Exporting...' : 'Export as JSON'}
                     </button>
                     <button
                       onClick={() => handleExportData('csv')}
-                      disabled={loading}
+                      disabled={exportingJson || exportingCsv}
                       className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 disabled:opacity-50"
                     >
-                      {loading ? 'Exporting...' : 'Export as CSV'}
+                      {exportingCsv ? 'Exporting...' : 'Export as CSV'}
                     </button>
                   </div>
                 </div>

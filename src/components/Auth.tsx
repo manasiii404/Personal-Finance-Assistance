@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { Eye, EyeOff, User, Mail, Lock, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock, AlertCircle, Phone, X } from "lucide-react";
+import { TermsModal } from "./ui/TermsModal";
 
 export const Auth: React.FC = () => {
   const { login, register } = useAuth();
@@ -13,8 +14,11 @@ export const Auth: React.FC = () => {
     email: "",
     password: "",
     name: "",
+    phone: "",
     confirmPassword: "",
   });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,11 +32,14 @@ export const Auth: React.FC = () => {
         if (formData.password !== formData.confirmPassword) {
           throw new Error("Passwords do not match");
         }
+        if (!acceptedTerms) {
+          throw new Error("Please accept the terms and conditions");
+        }
         // Set flag BEFORE register to ensure it's there when App re-renders
         // We'll clear it if register fails
         localStorage.setItem('showSMSSetup', 'true');
         try {
-          await register(formData.email, formData.password, formData.name);
+          await register(formData.email, formData.password, formData.name, formData.phone);
         } catch (regError) {
           localStorage.removeItem('showSMSSetup');
           throw regError;
@@ -78,23 +85,45 @@ export const Auth: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
-            <div className="animate-slide-up">
-              <label className="block text-sm font-semibold text-dark-700 mb-3">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="input-premium w-full pl-12 pr-4 py-4 font-medium"
-                  placeholder="Enter your full name"
-                  required={!isLogin}
-                />
+            <>
+              <div className="animate-slide-up">
+                <label className="block text-sm font-semibold text-dark-700 mb-3">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="input-premium w-full pl-12 pr-4 py-4 font-medium"
+                    placeholder="Enter your full name"
+                    required={!isLogin}
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="animate-slide-up">
+                <label className="block text-sm font-semibold text-dark-700 mb-3">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="input-premium w-full pl-12 pr-4 py-4 font-medium"
+                    placeholder="Enter your phone number"
+                    pattern="[0-9]{10}"
+                    required={!isLogin}
+                  />
+                </div>
+                <p className="text-xs text-dark-500 mt-1 ml-1">Required - 10 digits</p>
+              </div>
+            </>
           )}
 
           <div className="animate-slide-up">
@@ -146,23 +175,47 @@ export const Auth: React.FC = () => {
           </div>
 
           {!isLogin && (
-            <div className="animate-slide-up">
-              <label className="block text-sm font-semibold text-dark-700 mb-3">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className="input-premium w-full pl-12 pr-4 py-4 font-medium"
-                  placeholder="Confirm your password"
-                  required={!isLogin}
-                />
+            <>
+              <div className="animate-slide-up">
+                <label className="block text-sm font-semibold text-dark-700 mb-3">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-500" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    className="input-premium w-full pl-12 pr-4 py-4 font-medium"
+                    placeholder="Confirm your password"
+                    required={!isLogin}
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="animate-slide-up">
+                <label className="flex items-start space-x-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-1 h-5 w-5 rounded border-2 border-primary-300 text-primary-600 focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                    required={!isLogin}
+                  />
+                  <span className="text-sm text-dark-700 font-medium">
+                    I accept the{" "}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-gradient font-bold hover:underline"
+                    >
+                      Terms & Conditions
+                    </button>
+                  </span>
+                </label>
+              </div>
+            </>
           )}
 
           <button
@@ -190,10 +243,12 @@ export const Auth: React.FC = () => {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError(null);
+                setAcceptedTerms(false);
                 setFormData({
                   email: "",
                   password: "",
                   name: "",
+                  phone: "",
                   confirmPassword: "",
                 });
               }}
@@ -212,6 +267,15 @@ export const Auth: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <TermsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAccept={() => {
+          setAcceptedTerms(true);
+          setShowTermsModal(false);
+        }}
+      />
 
     </div>
   );

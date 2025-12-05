@@ -84,7 +84,10 @@ export const Transactions: React.FC = () => {
       transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
       filterCategory === "all" || transaction.category === filterCategory;
-    const matchesType = filterType === "all" || transaction.type === filterType;
+
+    // Determine type from amount: positive = income, negative = expense
+    const transactionType = transaction.amount > 0 ? "income" : "expense";
+    const matchesType = filterType === "all" || transactionType === filterType;
 
     return matchesSearch && matchesCategory && matchesType;
   });

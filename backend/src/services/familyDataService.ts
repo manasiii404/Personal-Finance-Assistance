@@ -321,19 +321,44 @@ export const familyDataService = {
 
                     let goalDetail = Array.from(goalMap.values());
 
-                    // Fallback
-                    if (goalDetail.length === 0) {
-                        goals.filter(g => g.userId === member.userId && g.current > 0).forEach(g => {
-                            goalDetail.push({ title: g.title, amount: g.current, target: g.target });
-                        });
-                    }
+                    // Calculate aggregated metrics for combo chart
+                    const totalContributions = contributions.reduce((sum, c) => sum + c.amount, 0);
+                    const uniqueGoals = new Set(contributions.map(c => c.goalId));
+                    const goalCount = uniqueGoals.size;
 
                     return {
                         memberName: member.user.name,
                         totalIncome: memberIncome,
                         totalExpenses: memberExpenses,
+                        totalContributions,
+                        goalCount,
                         goalDetail,
                     };
+                })
+            );
+
+            // Create goal-centric data for chart (goals on X-axis, members as lines)
+            // Filter to only include family goals (not personal goals)
+            const familyGoalsOnly = goals.filter(g => g.familyId === familyId);
+
+            const goalContributionsByGoal = await Promise.all(
+                familyGoalsOnly.map(async (goal) => {
+                    const contributions = await prisma.goalContribution.findMany({
+                        where: { goalId: goal.id },
+                        include: { user: true }
+                    });
+
+                    const goalData: any = { goalName: goal.title };
+
+                    // Add contribution amount for each member
+                    familyMembers.forEach(member => {
+                        const memberContributions = contributions
+                            .filter(c => c.userId === member.userId)
+                            .reduce((sum, c) => sum + c.amount, 0);
+                        goalData[member.user.name || 'Unknown'] = memberContributions;
+                    });
+
+                    return goalData;
                 })
             );
 
@@ -371,6 +396,7 @@ export const familyDataService = {
                 categoryBreakdown, // Now includes memberBreakdown
                 memberStats, // Now includes goalContributions
                 budgetProgress,
+                goalContributionsByGoal, // Goal-centric data for line chart
                 goalContributionsByMember, // New: goal contributions per member
             };
         } catch (error: any) {

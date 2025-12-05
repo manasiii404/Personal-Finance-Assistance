@@ -173,6 +173,16 @@ export const familyGoalService = {
                 },
             });
 
+            // Create contribution record for chart tracking
+            await prisma.goalContribution.create({
+                data: {
+                    goalId,
+                    userId,
+                    amount,
+                },
+            });
+
+
             // Create a contribution record (we'll track this in transaction notes or a separate field)
             const contribution = {
                 userId,

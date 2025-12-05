@@ -28,6 +28,10 @@ export const config = {
   // OpenAI
   openaiApiKey: process.env.OPENAI_API_KEY || '',
 
+  // Google Gemini AI
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  aiInsightsEnabled: process.env.AI_INSIGHTS_ENABLED === 'true' || false,
+
   // Rate Limiting
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000'), // 1 minute (changed from 15 minutes)
