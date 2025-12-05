@@ -472,6 +472,104 @@ class ApiService {
 
     return response;
   }
+
+  // Family Room endpoints
+  async createFamily(name: string) {
+    return this.request('/family/create', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async joinFamily(roomCode: string, permissions: 'VIEW_ONLY' | 'VIEW_EDIT') {
+    return this.request('/family/join', {
+      method: 'POST',
+      body: JSON.stringify({ roomCode, permissions }),
+    });
+  }
+
+  async getPendingRequests() {
+    return this.request('/family/requests');
+  }
+
+  async acceptRequest(memberId: string) {
+    return this.request(`/family/requests/${memberId}/accept`, {
+      method: 'POST',
+    });
+  }
+
+  async rejectRequest(memberId: string) {
+    return this.request(`/family/requests/${memberId}/reject`, {
+      method: 'POST',
+    });
+  }
+
+  async getMyFamily() {
+    return this.request('/family/my-family');
+  }
+
+  async updateMemberPermissions(memberId: string, permissions: 'VIEW_ONLY' | 'VIEW_EDIT') {
+    return this.request(`/family/members/${memberId}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    });
+  }
+
+  async removeMember(memberId: string) {
+    return this.request(`/family/members/${memberId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updateMyPermissions(permissions: 'VIEW_ONLY' | 'VIEW_EDIT') {
+    return this.request('/family/my-permissions', {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    });
+  }
+
+  async leaveFamily() {
+    return this.request('/family/leave', {
+      method: 'POST',
+    });
+  }
+
+  async deleteFamily(familyId: string) {
+    return this.request(`/family/${familyId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Family data sharing methods
+  async getFamilyTransactions(familyId: string) {
+    return this.request(`/family/${familyId}/transactions`, {
+      method: 'GET',
+    });
+  }
+
+  async getFamilyBudgets(familyId: string) {
+    return this.request(`/family/${familyId}/budgets`, {
+      method: 'GET',
+    });
+  }
+
+  async getFamilyGoals(familyId: string) {
+    return this.request(`/family/${familyId}/goals`, {
+      method: 'GET',
+    });
+  }
+
+  async getFamilySummary(familyId: string) {
+    return this.request(`/family/${familyId}/summary`, {
+      method: 'GET',
+    });
+  }
+
+  async getMyJoinRequests() {
+    return this.request('/family/my-requests', {
+      method: 'GET',
+    });
+  }
 }
 
 export const apiService = new ApiService(API_BASE_URL);

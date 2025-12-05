@@ -11,6 +11,7 @@ import {
   Settings,
   Wallet,
   LogOut,
+  Users,
 } from "lucide-react";
 
 interface NavigationProps {
@@ -32,6 +33,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "alerts", label: "Alerts", icon: Bell, badge: unreadCount },
     { id: "goals", label: "Goals", icon: Target },
+    { id: "family", label: "Family Room", icon: Users },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -67,17 +69,15 @@ export const Navigation: React.FC<NavigationProps> = ({
               <li key={item.id}>
                 <button
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${
-                    isActive
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-all duration-300 transform hover:scale-105 ${isActive
                       ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-xl"
                       : "text-slate-700 :bg-white/50 hover:text-slate-900 hover:shadow-lg"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon
-                      className={`h-5 w-5 ${
-                        isActive ? "text-white" : "text-slate-500"
-                      }`}
+                      className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-500"
+                        }`}
                     />
                     <span className="font-semibold">{item.label}</span>
                   </div>

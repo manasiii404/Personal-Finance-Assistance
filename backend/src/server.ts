@@ -1,4 +1,5 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -6,6 +7,7 @@ import compression from 'compression';
 import { config } from '@/config/env';
 import { generalLimiter } from '@/middleware/rateLimiter';
 import { errorHandler, notFound } from '@/middleware/errorHandler';
+import { initializeWebSocket } from './websocket';
 import logger from '@/utils/logger';
 
 // Import routes
@@ -17,8 +19,13 @@ import alertRoutes from '@/routes/alerts';
 import analyticsRoutes from '@/routes/analytics';
 import mlRoutes from '@/routes/ml';
 import smsRoutes from '@/routes/sms';
+import familyRoutes from '@/routes/family';
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket
+initializeWebSocket(httpServer);
 
 // Security middleware
 app.use(helmet({
@@ -76,6 +83,7 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ml', mlRoutes);
 app.use('/api/sms', smsRoutes);
+app.use('/api/family', familyRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -97,22 +105,29 @@ app.use(errorHandler);
 // Start server
 const PORT = config.port;
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
   logger.info(`Environment: ${config.nodeEnv}`);
   logger.info(`Health check: http://localhost:${PORT}/health`);
   logger.info(`API Documentation: http://localhost:${PORT}/api/docs`);
+  logger.info(`WebSocket server initialized`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  process.exit(0);
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
 });
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    process.exit(0);
+  });
 });
 
 export default app;

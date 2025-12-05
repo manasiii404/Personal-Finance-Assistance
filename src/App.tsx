@@ -8,10 +8,12 @@ import { Goals } from "./components/Goals";
 import { Settings } from "./components/Settings";
 import { Navigation } from "./components/Navigation";
 import { Auth } from "./components/Auth";
+import { FamilyRoom } from "./components/FamilyRoom";
 import { AlertProvider } from "./contexts/AlertContext";
 import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { CurrencyProvider } from "./contexts/CurrencyContext";
+import { SocketProvider } from "./contexts/SocketContext";
 
 import { SMSSetupModal } from "./components/SMSSetupModal";
 
@@ -46,6 +48,8 @@ const AppContent: React.FC = () => {
         return <Alerts />;
       case "goals":
         return <Goals />;
+      case "family":
+        return <FamilyRoom />;
       case "settings":
         return <Settings />;
       default:
@@ -70,26 +74,28 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <CurrencyProvider>
-      <FinanceProvider>
-        <AlertProvider>
-          <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-            <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
-            <main className="ml-64 p-8 animate-fade-in">{renderActiveComponent()}</main>
+    <SocketProvider>
+      <CurrencyProvider>
+        <FinanceProvider>
+          <AlertProvider>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+              <Navigation activeTab={activeTab} setActiveTab={setActiveTab} />
+              <main className="ml-64 p-8 animate-fade-in">{renderActiveComponent()}</main>
 
-            {/* SMS Setup Modal for new users */}
-            {showSMSSetup && user && (
-              <SMSSetupModal
-                isOpen={showSMSSetup}
-                onClose={handleCloseSMSSetup}
-                authToken={localStorage.getItem('authToken') || ''}
-                userId={user.id}
-              />
-            )}
-          </div>
-        </AlertProvider>
-      </FinanceProvider>
-    </CurrencyProvider>
+              {/* SMS Setup Modal for new users */}
+              {showSMSSetup && user && (
+                <SMSSetupModal
+                  isOpen={showSMSSetup}
+                  onClose={handleCloseSMSSetup}
+                  authToken={localStorage.getItem('authToken') || ''}
+                  userId={user.id}
+                />
+              )}
+            </div>
+          </AlertProvider>
+        </FinanceProvider>
+      </CurrencyProvider>
+    </SocketProvider>
   );
 };
 

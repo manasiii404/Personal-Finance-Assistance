@@ -20,10 +20,12 @@ model User {
   updatedAt        DateTime @updatedAt
 
   // Relations
-  transactions Transaction[]
-  budgets      Budget[]
-  goals        Goal[]
-  alerts       Alert[]
+  transactions     Transaction[]
+  budgets          Budget[]
+  goals            Goal[]
+  alerts           Alert[]
+  createdFamilies  Family[]        @relation("FamilyCreator")
+  familyMemberships FamilyMember[]
 
   @@map("users")
 }
@@ -129,4 +131,54 @@ enum CategoryType {
   INCOME
   EXPENSE
   BOTH
+}
+
+model Family {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  roomCode  String   @unique
+  creatorId String   @db.ObjectId
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  creator User           @relation("FamilyCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members FamilyMember[]
+
+  @@map("families")
+}
+
+model FamilyMember {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  familyId    String           @db.ObjectId
+  userId      String           @db.ObjectId
+  role        FamilyRole
+  permissions FamilyPermission @default(VIEW_ONLY)
+  status      MemberStatus     @default(PENDING)
+  joinedAt    DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, userId])
+  @@map("family_members")
+}
+
+enum FamilyRole {
+  CREATOR
+  MEMBER
+}
+
+enum FamilyPermission {
+  VIEW_ONLY
+  VIEW_EDIT
+}
+
+enum MemberStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
