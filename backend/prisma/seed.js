@@ -282,38 +282,58 @@ async function main() {
 
   console.log('✅ Goals created for test user');
 
-  // Create Manasi's Fam family room
-  const family = await prisma.family.create({
-    data: {
-      name: "Manasi's Fam",
-      roomCode: 'MANASI',
-      creatorId: demoUser.id,
-    },
-  });
+  // Create Manasi's Fam family room (skip if exists)
+  let family;
+  try {
+    family = await prisma.family.create({
+      data: {
+        name: "Manasi's Fam",
+        roomCode: 'MANASI',
+        creatorId: demoUser.id,
+      },
+    });
+    console.log('✅ Family "Manasi\'s Fam" created');
+  } catch (error) {
+    if (error.code === 'P2002') {
+      // Family already exists, fetch it
+      family = await prisma.family.findUnique({
+        where: { roomCode: 'MANASI' }
+      });
+      console.log('ℹ️  Family "Manasi\'s Fam" already exists, using existing');
+    } else {
+      throw error;
+    }
+  }
 
-  console.log('✅ Family "Manasi\'s Fam" created');
+  // Add demo user as creator/admin (skip if exists)
+  try {
+    await prisma.familyMember.create({
+      data: {
+        familyId: family.id,
+        userId: demoUser.id,
+        role: 'CREATOR',
+        permissions: 'VIEW_EDIT',
+        status: 'ACCEPTED',
+      },
+    });
+  } catch (error) {
+    if (error.code !== 'P2002') throw error;
+  }
 
-  // Add demo user as creator/admin
-  await prisma.familyMember.create({
-    data: {
-      familyId: family.id,
-      userId: demoUser.id,
-      role: 'CREATOR',
-      permissions: 'VIEW_EDIT',
-      status: 'ACCEPTED',
-    },
-  });
-
-  // Add test user as member with VIEW_EDIT permission
-  await prisma.familyMember.create({
-    data: {
-      familyId: family.id,
-      userId: testUser.id,
-      role: 'MEMBER',
-      permissions: 'VIEW_EDIT',
-      status: 'ACCEPTED',
-    },
-  });
+  // Add test user as member with VIEW_EDIT permission (skip if exists)
+  try {
+    await prisma.familyMember.create({
+      data: {
+        familyId: family.id,
+        userId: testUser.id,
+        role: 'MEMBER',
+        permissions: 'VIEW_EDIT',
+        status: 'ACCEPTED',
+      },
+    });
+  } catch (error) {
+    if (error.code !== 'P2002') throw error;
+  }
 
   console.log('✅ Family members added to "Manasi\'s Fam"');
 
