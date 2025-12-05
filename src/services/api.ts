@@ -528,9 +528,10 @@ class ApiService {
     });
   }
 
-  async leaveFamily() {
+  async leaveFamily(familyId: string) {
     return this.request('/family/leave', {
       method: 'POST',
+      body: JSON.stringify({ familyId }),
     });
   }
 
@@ -541,6 +542,13 @@ class ApiService {
   }
 
   // Family data sharing methods
+  async shareTransactions(familyId: string, isSharing: boolean) {
+    return this.request(`/family/${familyId}/share-transactions`, {
+      method: 'POST',
+      body: JSON.stringify({ isSharing }),
+    });
+  }
+
   async getFamilyTransactions(familyId: string) {
     return this.request(`/family/${familyId}/transactions`, {
       method: 'GET',
@@ -568,6 +576,79 @@ class ApiService {
   async getMyJoinRequests() {
     return this.request('/family/my-requests', {
       method: 'GET',
+    });
+  }
+
+  async promoteToAdmin(memberId: string) {
+    return this.request(`/family/members/${memberId}/promote`, {
+      method: 'POST',
+    });
+  }
+
+  async demoteFromAdmin(memberId: string) {
+    return this.request(`/family/members/${memberId}/demote`, {
+      method: 'POST',
+    });
+  }
+
+  // ===== FAMILY BUDGETS =====
+  async createFamilyBudget(familyId: string, data: { category: string; limit: number; period: string }) {
+    return this.request(`/family/${familyId}/budgets`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getFamilyBudgetsNew(familyId: string) {
+    return this.request(`/family/${familyId}/budgets-new`, {
+      method: 'GET',
+    });
+  }
+
+  async updateFamilyBudget(familyId: string, budgetId: string, data: { category?: string; limit?: number; period?: string }) {
+    return this.request(`/family/${familyId}/budgets/${budgetId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFamilyBudget(familyId: string, budgetId: string) {
+    return this.request(`/family/${familyId}/budgets/${budgetId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ===== FAMILY GOALS =====
+  async createFamilyGoal(familyId: string, data: { title: string; target: number; deadline: string; category: string }) {
+    return this.request(`/family/${familyId}/goals`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getFamilyGoalsNew(familyId: string) {
+    return this.request(`/family/${familyId}/goals-new`, {
+      method: 'GET',
+    });
+  }
+
+  async contributeToFamilyGoal(familyId: string, goalId: string, amount: number) {
+    return this.request(`/family/${familyId}/goals/${goalId}/contribute`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    });
+  }
+
+  async updateFamilyGoal(familyId: string, goalId: string, data: { title?: string; target?: number; deadline?: string; category?: string }) {
+    return this.request(`/family/${familyId}/goals/${goalId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFamilyGoal(familyId: string, goalId: string) {
+    return this.request(`/family/${familyId}/goals/${goalId}`, {
+      method: 'DELETE',
     });
   }
 }

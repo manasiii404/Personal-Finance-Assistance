@@ -199,7 +199,7 @@ export const familyController = {
         }
     },
 
-    // Get user's family
+    // Get user's families
     async getMyFamily(req: AuthenticatedRequest, res: Response) {
         try {
             const userId = req.user?.id;
@@ -211,11 +211,11 @@ export const familyController = {
                 });
             }
 
-            const family = await familyService.getUserFamily(userId);
+            const families = await familyService.getUserFamily(userId);
 
             res.status(200).json({
                 success: true,
-                data: family,
+                data: { families }, // Return as { families: [...] }
             });
         } catch (error: any) {
             logger.error('Error in getMyFamily controller:', error);
@@ -382,6 +382,7 @@ export const familyController = {
     async leaveFamily(req: AuthenticatedRequest, res: Response) {
         try {
             const userId = req.user?.id;
+            const { familyId } = req.body;
 
             if (!userId) {
                 return res.status(401).json({
@@ -390,7 +391,14 @@ export const familyController = {
                 });
             }
 
-            await familyService.leaveFamily(userId);
+            if (!familyId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Family ID is required',
+                });
+            }
+
+            await familyService.leaveFamily(userId, familyId);
 
             res.status(200).json({
                 success: true,
@@ -401,6 +409,37 @@ export const familyController = {
             res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to leave family',
+            });
+        }
+    },
+
+    // Toggle transaction sharing
+    async toggleTransactionSharing(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+            const { familyId } = req.params; // Using params instead of body to match route convention
+            const { isSharing } = req.body;
+
+            if (!userId) {
+                return res.status(401).json({ success: false, message: 'Unauthorized' });
+            }
+
+            if (typeof isSharing !== 'boolean') {
+                return res.status(400).json({ success: false, message: 'isSharing must be a boolean' });
+            }
+
+            const member = await familyService.toggleTransactionSharing(userId, familyId, isSharing);
+
+            res.status(200).json({
+                success: true,
+                message: isSharing ? 'Transactions shared with family' : 'Transactions hidden from family',
+                data: member,
+            });
+        } catch (error: any) {
+            logger.error('Error in toggleTransactionSharing controller:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to toggle transaction sharing',
             });
         }
     },
@@ -437,6 +476,80 @@ export const familyController = {
             res.status(500).json({
                 success: false,
                 message: error.message || 'Failed to delete family',
+            });
+        }
+    },
+
+    // Promote member to admin (creator only)
+    async promoteToAdmin(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+            const { memberId } = req.params;
+
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized',
+                });
+            }
+
+            const member = await familyService.promoteToAdmin(userId, memberId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Member promoted to admin',
+                data: member,
+            });
+        } catch (error: any) {
+            logger.error('Error in promoteToAdmin controller:', error);
+
+            if (error.message.includes('Unauthorized')) {
+                return res.status(403).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to promote member',
+            });
+        }
+    },
+
+    // Demote admin to member (creator only)
+    async demoteFromAdmin(req: AuthenticatedRequest, res: Response) {
+        try {
+            const userId = req.user?.id;
+            const { memberId } = req.params;
+
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Unauthorized',
+                });
+            }
+
+            const member = await familyService.demoteFromAdmin(userId, memberId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Admin demoted to member',
+                data: member,
+            });
+        } catch (error: any) {
+            logger.error('Error in demoteFromAdmin controller:', error);
+
+            if (error.message.includes('Unauthorized')) {
+                return res.status(403).json({
+                    success: false,
+                    message: error.message,
+                });
+            }
+
+            res.status(500).json({
+                success: false,
+                message: error.message || 'Failed to demote admin',
             });
         }
     },

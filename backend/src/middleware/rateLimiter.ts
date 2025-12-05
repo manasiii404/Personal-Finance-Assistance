@@ -12,13 +12,17 @@ export const generalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Skip rate limiting in development mode
+  skip: (req) => {
+    return config.nodeEnv === 'development';
+  },
   handler: (req, res) => {
     logger.warn('Rate limit exceeded:', {
       ip: req.ip,
       url: req.url,
       userAgent: req.get('User-Agent'),
     });
-    
+
     res.status(429).json({
       success: false,
       message: 'Too many requests from this IP, please try again later',
@@ -43,7 +47,7 @@ export const authLimiter = rateLimit({
       url: req.url,
       userAgent: req.get('User-Agent'),
     });
-    
+
     res.status(429).json({
       success: false,
       message: 'Too many authentication attempts, please try again later',
@@ -67,7 +71,7 @@ export const smsLimiter = rateLimit({
       url: req.url,
       userAgent: req.get('User-Agent'),
     });
-    
+
     res.status(429).json({
       success: false,
       message: 'Too many SMS parsing requests, please try again later',
@@ -91,7 +95,7 @@ export const exportLimiter = rateLimit({
       url: req.url,
       userAgent: req.get('User-Agent'),
     });
-    
+
     res.status(429).json({
       success: false,
       message: 'Too many export requests, please try again later',

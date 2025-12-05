@@ -28,6 +28,7 @@ export const familyDataService = {
                 select: {
                     userId: true,
                     permissions: true,
+                    isSharingTransactions: true,
                     user: {
                         select: {
                             id: true,
@@ -41,6 +42,17 @@ export const familyDataService = {
             // Get last 50 transactions for each member
             const memberTransactions = await Promise.all(
                 familyMembers.map(async (member) => {
+                    const isSharing = (member as any).isSharingTransactions;
+                    if (member.userId !== userId && !isSharing) {
+                        return {
+                            member: member.user,
+                            permissions: member.permissions,
+                            isSharingTransactions: isSharing,
+                            transactions: [],
+                            count: 0,
+                        };
+                    }
+
                     const transactions = await prisma.transaction.findMany({
                         where: {
                             userId: member.userId,
@@ -54,6 +66,7 @@ export const familyDataService = {
                     return {
                         member: member.user,
                         permissions: member.permissions,
+                        isSharingTransactions: isSharing,
                         transactions,
                         count: transactions.length,
                     };
@@ -211,20 +224,11 @@ export const familyDataService = {
 
             const memberIds = familyMembers.map(m => m.userId);
 
-            // Get current month's date range
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-            // Get all transactions for current month
+            // Get all transactions (all time) for accurate member stats matching goal totals
             const transactions = await prisma.transaction.findMany({
                 where: {
                     userId: {
                         in: memberIds,
-                    },
-                    date: {
-                        gte: startOfMonth,
-                        lte: endOfMonth,
                     },
                 },
             });
@@ -238,7 +242,7 @@ export const familyDataService = {
                 .filter(t => t.type === 'EXPENSE')
                 .reduce((sum, t) => sum + t.amount, 0);
 
-            // Get active goals count
+            // Get active goals count and contributions
             const goals = await prisma.goal.findMany({
                 where: {
                     userId: {
@@ -261,6 +265,97 @@ export const familyDataService = {
             const totalBudget = budgets.reduce((sum, b) => sum + b.limit, 0);
             const totalSpent = budgets.reduce((sum, b) => sum + b.spent, 0);
 
+            // Calculate category breakdown with member-wise spending
+            const categoryMemberMap = new Map<string, Map<string, number>>();
+            transactions
+                .filter(t => t.type === 'EXPENSE')
+                .forEach(t => {
+                    if (!categoryMemberMap.has(t.category)) {
+                        categoryMemberMap.set(t.category, new Map());
+                    }
+                    const memberMap = categoryMemberMap.get(t.category)!;
+                    const memberName = familyMembers.find(m => m.userId === t.userId)?.user.name || 'Unknown';
+                    const current = memberMap.get(memberName) || 0;
+                    memberMap.set(memberName, current + t.amount);
+                });
+
+            const categoryBreakdown = Array.from(categoryMemberMap.entries()).map(([category, memberMap]) => {
+                const totalAmount = Array.from(memberMap.values()).reduce((sum, amt) => sum + amt, 0);
+                const memberBreakdown = Array.from(memberMap.entries()).map(([memberName, amount]) => ({
+                    memberName,
+                    amount,
+                }));
+
+                return {
+                    category,
+                    amount: totalAmount,
+                    memberBreakdown, // Per-member spending in this category
+                };
+            });
+
+            // Calculate member stats for bar chart (income vs expenses)
+            const memberStats = await Promise.all(
+                familyMembers.map(async (member) => {
+                    const memberTransactions = transactions.filter(t => t.userId === member.userId);
+                    const memberIncome = memberTransactions
+                        .filter(t => t.type === 'INCOME')
+                        .reduce((sum, t) => sum + t.amount, 0);
+                    const memberExpenses = memberTransactions
+                        .filter(t => t.type === 'EXPENSE')
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    // Get goal contributions for this member using the GoalContribution table
+                    const contributions = await prisma.goalContribution.findMany({
+                        where: { userId: member.userId, goal: { familyId: familyId } },
+                        include: { goal: true }
+                    });
+
+                    const goalMap = new Map<string, { title: string, amount: number, target: number }>();
+                    contributions.forEach(c => {
+                        if (!c.goal) return;
+                        if (!goalMap.has(c.goalId)) {
+                            goalMap.set(c.goalId, { title: c.goal.title, amount: 0, target: c.goal.target });
+                        }
+                        goalMap.get(c.goalId)!.amount += c.amount;
+                    });
+
+                    let goalDetail = Array.from(goalMap.values());
+
+                    // Fallback
+                    if (goalDetail.length === 0) {
+                        goals.filter(g => g.userId === member.userId && g.current > 0).forEach(g => {
+                            goalDetail.push({ title: g.title, amount: g.current, target: g.target });
+                        });
+                    }
+
+                    return {
+                        memberName: member.user.name,
+                        totalIncome: memberIncome,
+                        totalExpenses: memberExpenses,
+                        goalDetail,
+                    };
+                })
+            );
+
+            // Calculate budget progress
+            const budgetProgress = budgets.map(budget => ({
+                category: budget.category,
+                limit: budget.limit,
+                spent: budget.spent,
+            }));
+
+            // Calculate goal contributions per member (for a separate graph if needed)
+            const goalContributionsByMember = familyMembers.map(member => {
+                const memberGoals = goals.filter(g => g.userId === member.userId);
+                const totalContributed = memberGoals.reduce((sum, g) => sum + g.current, 0);
+
+                return {
+                    memberName: member.user.name,
+                    totalContributed,
+                    goalCount: memberGoals.length,
+                };
+            });
+
             return {
                 members: familyMembers,
                 summary: {
@@ -273,6 +368,10 @@ export const familyDataService = {
                     totalSpent,
                     budgetRemaining: totalBudget - totalSpent,
                 },
+                categoryBreakdown, // Now includes memberBreakdown
+                memberStats, // Now includes goalContributions
+                budgetProgress,
+                goalContributionsByMember, // New: goal contributions per member
             };
         } catch (error: any) {
             logger.error('Error in getFamilySummary:', error);

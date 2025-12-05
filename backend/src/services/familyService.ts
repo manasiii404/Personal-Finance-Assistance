@@ -47,7 +47,7 @@ export const familyService = {
                     members: {
                         create: {
                             userId,
-                            role: FamilyRole.CREATOR,
+                            role: FamilyRole.ADMIN, // Creator becomes admin
                             permissions: FamilyPermission.VIEW_EDIT,
                             status: MemberStatus.ACCEPTED,
                         },
@@ -183,11 +183,26 @@ export const familyService = {
         }
     },
 
-    // Get pending join requests (creator only)
+    // Get pending join requests (creator and admins)
     async getPendingRequests(userId: string) {
         try {
+            // Find families where user is creator or admin
+            const memberships = await prisma.familyMember.findMany({
+                where: {
+                    userId,
+                    status: MemberStatus.ACCEPTED,
+                    role: {
+                        in: [FamilyRole.CREATOR, 'ADMIN' as any],
+                    },
+                },
+            });
+
+            const familyIds = memberships.map(m => m.familyId);
+
             const families = await prisma.family.findMany({
-                where: { creatorId: userId },
+                where: {
+                    id: { in: familyIds },
+                },
                 include: {
                     members: {
                         where: { status: MemberStatus.PENDING },
@@ -221,7 +236,7 @@ export const familyService = {
 
     // Accept a join request (permissions already set by user)
     async acceptRequest(
-        creatorId: string,
+        userId: string,
         memberId: string
     ) {
         try {
@@ -243,8 +258,10 @@ export const familyService = {
                 throw new Error('Member not found');
             }
 
-            if (member.family.creatorId !== creatorId) {
-                throw new Error('Unauthorized: Only the creator can accept requests');
+            // Check if user is creator or admin
+            const isAuthorized = await this.isAdminOrCreator(userId, member.familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only creators and admins can accept requests');
             }
 
             if (member.status !== MemberStatus.PENDING) {
@@ -289,8 +306,8 @@ export const familyService = {
         }
     },
 
-    // Reject a join request
-    async rejectRequest(creatorId: string, memberId: string) {
+    // Reject a join request (creator and admins)
+    async rejectRequest(userId: string, memberId: string) {
         try {
             const member = await prisma.familyMember.findUnique({
                 where: { id: memberId },
@@ -310,8 +327,10 @@ export const familyService = {
                 throw new Error('Member not found');
             }
 
-            if (member.family.creatorId !== creatorId) {
-                throw new Error('Unauthorized: Only the creator can reject requests');
+            // Check if user is creator or admin
+            const isAuthorized = await this.isAdminOrCreator(userId, member.familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only creators and admins can reject requests');
             }
 
             if (member.status !== MemberStatus.PENDING) {
@@ -338,13 +357,16 @@ export const familyService = {
         }
     },
 
-    // Get user's family
+    // Get user's families (all of them)
     async getUserFamily(userId: string) {
         try {
-            const membership = await prisma.familyMember.findFirst({
+            const memberships = await prisma.familyMember.findMany({
                 where: {
                     userId,
                     status: MemberStatus.ACCEPTED,
+                },
+                orderBy: {
+                    joinedAt: 'desc', // Most recent first
                 },
                 include: {
                     family: {
@@ -373,7 +395,8 @@ export const familyService = {
                 },
             });
 
-            return membership;
+            // Return array of families
+            return memberships.map(m => m.family);
         } catch (error) {
             logger.error('Error getting user family:', error);
             throw error;
@@ -481,12 +504,15 @@ export const familyService = {
                 throw new Error('Member not found');
             }
 
-            if (member.family.creatorId !== creatorId) {
-                throw new Error('Unauthorized: Only the creator can update permissions');
+            // Check if user is an admin or creator
+            const isAuthorized = await this.isAdminOrCreator(creatorId, member.familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only admins can update permissions');
             }
 
-            if (member.role === FamilyRole.CREATOR) {
-                throw new Error('Cannot change creator permissions');
+            // Cannot change admin or creator permissions
+            if (member.role === FamilyRole.CREATOR || (member.role as string) === 'ADMIN') {
+                throw new Error('Cannot change admin permissions');
             }
 
             // Update permissions
@@ -523,8 +549,8 @@ export const familyService = {
         }
     },
 
-    // Remove member from family (creator only)
-    async removeMember(creatorId: string, memberId: string) {
+    // Remove member from family (creator and admins)
+    async removeMember(userId: string, memberId: string) {
         try {
             const member = await prisma.familyMember.findUnique({
                 where: { id: memberId },
@@ -544,12 +570,20 @@ export const familyService = {
                 throw new Error('Member not found');
             }
 
-            if (member.family.creatorId !== creatorId) {
-                throw new Error('Unauthorized: Only the creator can remove members');
+            // Check if user is creator or admin
+            const isAuthorized = await this.isAdminOrCreator(userId, member.familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only creators and admins can remove members');
             }
 
+            // Cannot remove the creator
             if (member.role === FamilyRole.CREATOR) {
                 throw new Error('Cannot remove the creator');
+            }
+
+            // Only creator can remove admins
+            if ((member.role as string) === 'ADMIN' && member.family.creatorId !== userId) {
+                throw new Error('Only the creator can remove admins');
             }
 
             // Delete member
@@ -577,12 +611,50 @@ export const familyService = {
         }
     },
 
+
+
+    // Toggle transaction sharing for a member
+    async toggleTransactionSharing(userId: string, familyId: string, isSharing: boolean) {
+        try {
+            const membership = await prisma.familyMember.findUnique({
+                where: {
+                    familyId_userId: {
+                        familyId,
+                        userId,
+                    },
+                },
+            });
+
+            if (!membership) {
+                throw new Error('Family membership not found');
+            }
+
+            const updatedMembership = await prisma.familyMember.update({
+                where: {
+                    familyId_userId: {
+                        familyId,
+                        userId,
+                    },
+                },
+                data: {
+                    isSharingTransactions: isSharing,
+                },
+            });
+
+            logger.info(`User ${userId} toggled transaction sharing to ${isSharing} in family ${familyId}`);
+            return updatedMembership;
+        } catch (error) {
+            logger.error('Error toggling transaction sharing:', error);
+            throw error;
+        }
+    },
     // Leave family (member only)
-    async leaveFamily(userId: string) {
+    async leaveFamily(userId: string, familyId: string) {
         try {
             const membership = await prisma.familyMember.findFirst({
                 where: {
                     userId,
+                    familyId,
                     status: MemberStatus.ACCEPTED,
                 },
                 include: {
@@ -598,7 +670,7 @@ export const familyService = {
             });
 
             if (!membership) {
-                throw new Error('You are not a member of any family');
+                throw new Error('You are not a member of this family');
             }
 
             if (membership.role === FamilyRole.CREATOR) {
@@ -640,8 +712,10 @@ export const familyService = {
                 throw new Error('Family not found');
             }
 
-            if (family.creatorId !== userId) {
-                throw new Error('Unauthorized: Only the creator can delete the family');
+            // Check if user is an admin or creator
+            const isAuthorized = await this.isAdminOrCreator(userId, familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only admins can delete the family');
             }
 
             // Notify all members before deletion
@@ -663,6 +737,169 @@ export const familyService = {
             return { success: true };
         } catch (error) {
             logger.error('Error deleting family:', error);
+            throw error;
+        }
+    },
+
+    // Helper: Check if user is admin or creator of a family
+    async isAdminOrCreator(userId: string, familyId: string): Promise<boolean> {
+        try {
+            const membership = await prisma.familyMember.findFirst({
+                where: {
+                    userId,
+                    familyId,
+                    status: MemberStatus.ACCEPTED,
+                    role: {
+                        in: [FamilyRole.CREATOR, 'ADMIN' as any], // Temporary until Prisma regenerates
+                    },
+                },
+            });
+
+            return !!membership;
+        } catch (error) {
+            logger.error('Error checking admin status:', error);
+            return false;
+        }
+    },
+
+    // Promote member to admin (creator only)
+    async promoteToAdmin(userId: string, memberId: string) {
+        try {
+            const member = await prisma.familyMember.findUnique({
+                where: { id: memberId },
+                include: {
+                    family: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+
+            if (!member) {
+                throw new Error('Member not found');
+            }
+
+            // Check if user is an admin or creator
+            const isAuthorized = await this.isAdminOrCreator(userId, member.familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only admins can promote members to admin');
+            }
+
+            if ((member.role as string) === 'ADMIN') {
+                throw new Error('Member is already an admin');
+            }
+
+            if (member.status !== MemberStatus.ACCEPTED) {
+                throw new Error('Cannot promote pending members');
+            }
+
+            // Promote to admin and set VIEW_EDIT permissions
+            const updatedMember = await prisma.familyMember.update({
+                where: { id: memberId },
+                data: {
+                    role: 'ADMIN' as any,
+                    permissions: FamilyPermission.VIEW_EDIT // Admins always have full access
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+
+            // Notify the promoted member
+            emitToUser(member.userId, 'family:promoted-to-admin', {
+                familyId: member.familyId,
+                familyName: member.family.name,
+            });
+
+            // Notify all family members
+            emitToFamily(member.familyId, 'family:member-updated', {
+                member: updatedMember,
+            });
+
+            logger.info(`Member promoted to admin: ${memberId} in family ${member.familyId}`);
+            return updatedMember;
+        } catch (error) {
+            logger.error('Error promoting to admin:', error);
+            throw error;
+        }
+    },
+
+    // Demote admin to member (creator only)
+    async demoteFromAdmin(userId: string, memberId: string) {
+        try {
+            const member = await prisma.familyMember.findUnique({
+                where: { id: memberId },
+                include: {
+                    family: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+
+            if (!member) {
+                throw new Error('Member not found');
+            }
+
+            // Check if user is an admin or creator
+            const isAuthorized = await this.isAdminOrCreator(userId, member.familyId);
+            if (!isAuthorized) {
+                throw new Error('Unauthorized: Only admins can demote other admins');
+            }
+
+            // Prevent self-demotion
+            if (member.userId === userId) {
+                throw new Error('You cannot demote yourself');
+            }
+
+            if ((member.role as string) !== 'ADMIN') {
+                throw new Error('Member is not an admin');
+            }
+
+            // Demote to regular member
+            const updatedMember = await prisma.familyMember.update({
+                where: { id: memberId },
+                data: { role: FamilyRole.MEMBER },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
+                },
+            });
+
+            // Notify the demoted member
+            emitToUser(member.userId, 'family:demoted-from-admin', {
+                familyId: member.familyId,
+                familyName: member.family.name,
+            });
+
+            // Notify all family members
+            emitToFamily(member.familyId, 'family:member-updated', {
+                member: updatedMember,
+            });
+
+            logger.info(`Admin demoted to member: ${memberId} in family ${member.familyId}`);
+            return updatedMember;
+        } catch (error) {
+            logger.error('Error demoting from admin:', error);
             throw error;
         }
     },

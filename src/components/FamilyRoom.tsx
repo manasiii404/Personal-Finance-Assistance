@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Copy, Check, UserPlus, Shield, Eye, Edit3, Trash2, LogOut, X, ChevronRight, Home } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
 import apiService from '../services/api';
 import { useAlerts } from '../contexts/AlertContext';
@@ -8,7 +9,7 @@ import { FamilyDataDashboard } from './FamilyDataDashboard';
 interface FamilyMember {
     id: string;
     userId: string;
-    role: 'CREATOR' | 'MEMBER';
+    role: 'CREATOR' | 'ADMIN' | 'MEMBER';
     permissions: 'VIEW_ONLY' | 'VIEW_EDIT';
     status: 'PENDING' | 'ACCEPTED' | 'REJECTED';
     user: {
@@ -32,6 +33,7 @@ interface Family {
 }
 
 export const FamilyRoom: React.FC = () => {
+    const { user } = useAuth();
     const [families, setFamilies] = useState<Family[]>([]);
     const [selectedFamily, setSelectedFamily] = useState<Family | null>(null);
     const [pendingRequests, setPendingRequests] = useState<any[]>([]);
@@ -46,6 +48,13 @@ export const FamilyRoom: React.FC = () => {
     const [selectedPermission, setSelectedPermission] = useState<'VIEW_ONLY' | 'VIEW_EDIT'>('VIEW_ONLY');
     const [showPermissionModal, setShowPermissionModal] = useState(false);
     const [selectedRequest, setSelectedRequest] = useState<any>(null);
+    const [confirmAction, setConfirmAction] = useState<{
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        confirmText?: string;
+        type?: 'danger' | 'warning' | 'info';
+    } | null>(null);
 
     const { socket, isConnected, joinFamilyRoom } = useSocket();
     const { addAlert } = useAlerts();
@@ -83,7 +92,7 @@ export const FamilyRoom: React.FC = () => {
         });
 
         socket.on('family:permission-changed', (data: any) => {
-            addAlert({ type: 'info', title: 'Permissions Updated', message: `Your permissions: ${data.permissions}` });
+            addAlert({ type: 'info', title: 'Permissions Updated', message: `Your permissions: ${data.permissions} ` });
             loadAllFamilies();
         });
 
@@ -92,7 +101,7 @@ export const FamilyRoom: React.FC = () => {
         });
 
         socket.on('family:removed', (data: any) => {
-            addAlert({ type: 'error', title: 'Removed', message: `You were removed from ${data.familyName}` });
+            addAlert({ type: 'error', title: 'Removed', message: `You were removed from ${data.familyName} ` });
             setSelectedFamily(null);
             loadAllFamilies();
         });
@@ -131,14 +140,28 @@ export const FamilyRoom: React.FC = () => {
     const loadAllFamilies = async () => {
         try {
             const response = await apiService.getMyFamily();
-            if (response.data && response.data.family) {
-                // For now, we only support one family, but structure supports multiple
-                setFamilies([response.data.family]);
+            console.log('=== API RESPONSE (JSON) ===');
+            console.log(JSON.stringify(response, null, 2));
+
+            // The API now returns: { success: true, data: { families: [...] } }
+            if (response.data && response.data.families) {
+                console.log(`✅ Found ${response.data.families.length} families`);
+                setFamilies(response.data.families);
+
+                // Update selectedFamily if it's currently selected for real-time updates
+                if (selectedFamily) {
+                    const updatedSelectedFamily = response.data.families.find((f: Family) => f.id === selectedFamily.id);
+                    if (updatedSelectedFamily) {
+                        setSelectedFamily(updatedSelectedFamily);
+                    }
+                }
             } else {
+                console.log('⚠️ No families in response');
                 setFamilies([]);
             }
         } catch (error: any) {
-            console.error('Error loading families:', error);
+            console.error('❌ Error loading families:', error);
+            setFamilies([]);
         }
     };
 
@@ -230,31 +253,91 @@ export const FamilyRoom: React.FC = () => {
     };
 
     const handleUpdatePermissions = async (memberId: string, permissions: 'VIEW_ONLY' | 'VIEW_EDIT') => {
-        setLoading(true);
-        try {
-            await apiService.updateMemberPermissions(memberId, permissions);
-            loadAllFamilies();
-            addAlert({ type: 'success', title: 'Updated', message: 'Permissions updated!' });
-        } catch (error: any) {
-            addAlert({ type: 'error', title: 'Error', message: error.message || 'Failed to update permissions' });
-        } finally {
-            setLoading(false);
-        }
+        setConfirmAction({
+            title: 'Change Permissions',
+            message: `Are you sure you want to change this member's permissions to ${permissions === 'VIEW_ONLY' ? 'View Only' : 'View & Edit'}?`,
+            confirmText: 'Change',
+            type: 'info',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    await apiService.updateMemberPermissions(memberId, permissions);
+                    loadAllFamilies();
+                    addAlert({ type: 'success', title: 'Updated', message: 'Permissions updated!' });
+                } catch (error: any) {
+                    addAlert({ type: 'error', title: 'Error', message: error.message || 'Failed to update permissions' });
+                } finally {
+                    setLoading(false);
+                    setConfirmAction(null);
+                }
+            },
+        });
     };
 
     const handleRemoveMember = async (memberId: string) => {
-        if (!confirm('Are you sure you want to remove this member?')) return;
+        setConfirmAction({
+            title: 'Remove Member',
+            message: 'Are you sure you want to remove this member from the family?',
+            confirmText: 'Remove',
+            type: 'danger',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    await apiService.removeMember(memberId);
+                    loadAllFamilies();
+                    addAlert({ type: 'success', title: 'Removed', message: 'Member removed' });
+                } catch (error: any) {
+                    addAlert({ type: 'error', title: 'Error', message: error.message || 'Failed to remove member' });
+                } finally {
+                    setLoading(false);
+                    setConfirmAction(null);
+                }
+            },
+        });
+    };
 
-        setLoading(true);
-        try {
-            await apiService.removeMember(memberId);
-            loadAllFamilies();
-            addAlert({ type: 'success', title: 'Removed', message: 'Member removed' });
-        } catch (error: any) {
-            addAlert({ type: 'error', title: 'Error', message: error.message || 'Failed to remove member' });
-        } finally {
-            setLoading(false);
-        }
+    const handlePromoteToAdmin = async (memberId: string) => {
+        setConfirmAction({
+            title: 'Promote to Admin',
+            message: 'Are you sure you want to promote this member to admin? They will have full control over the family.',
+            confirmText: 'Promote',
+            type: 'warning',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    await apiService.promoteToAdmin(memberId);
+                    loadAllFamilies();
+                    addAlert({ type: 'success', title: 'Success', message: 'Member promoted to admin with full access!' });
+                } catch (error: any) {
+                    addAlert({ type: 'error', title: 'Error', message: error.message || 'Failed to promote member' });
+                } finally {
+                    setLoading(false);
+                    setConfirmAction(null);
+                }
+            },
+        });
+    };
+
+    const handleDemoteFromAdmin = async (memberId: string) => {
+        setConfirmAction({
+            title: 'Demote from Admin',
+            message: 'Are you sure you want to demote this admin to a regular member? They will lose admin privileges.',
+            confirmText: 'Demote',
+            type: 'warning',
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    await apiService.demoteFromAdmin(memberId);
+                    loadAllFamilies();
+                    addAlert({ type: 'success', title: 'Success', message: 'Admin demoted to member' });
+                } catch (error: any) {
+                    addAlert({ type: 'error', title: 'Error', message: error.message || 'Failed to demote admin' });
+                } finally {
+                    setLoading(false);
+                    setConfirmAction(null);
+                }
+            },
+        });
     };
 
     const handleLeaveFamily = async () => {
@@ -262,7 +345,7 @@ export const FamilyRoom: React.FC = () => {
 
         setLoading(true);
         try {
-            await apiService.leaveFamily();
+            await apiService.leaveFamily(activeFamily.id);
             setSelectedFamily(null);
             loadAllFamilies();
             addAlert({ type: 'success', title: 'Left Family', message: 'You left the family' });
@@ -296,8 +379,10 @@ export const FamilyRoom: React.FC = () => {
         setTimeout(() => setCopiedCode(false), 2000);
     };
 
-    const isCreator = (family: Family) => {
-        return family.members.some(m => m.status === 'ACCEPTED' && m.role === 'CREATOR');
+    const isAdmin = (family: Family) => {
+        // Check if CURRENT USER is an admin in this family
+        if (!user) return false;
+        return family.members.some(m => m.status === 'ACCEPTED' && m.role === 'ADMIN' && m.user.id === user.id);
     };
 
     const getUserPermissions = (family: Family): 'VIEW_ONLY' | 'VIEW_EDIT' => {
@@ -408,7 +493,6 @@ export const FamilyRoom: React.FC = () => {
                             <div className="grid md:grid-cols-2 gap-4">
                                 {families.map((family) => {
                                     const userPerms = getUserPermissions(family);
-                                    const creator = isCreator(family);
                                     return (
                                         <div
                                             key={family.id}
@@ -423,9 +507,9 @@ export const FamilyRoom: React.FC = () => {
                                                 <ChevronRight className="w-6 h-6 text-purple-600 group-hover:translate-x-1 transition-transform" />
                                             </div>
                                             <div className="flex items-center gap-2 flex-wrap">
-                                                {creator && (
-                                                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
-                                                        <Shield className="w-3 h-3" /> Creator
+                                                {isAdmin(family) && (
+                                                    <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1">
+                                                        <Shield className="w-3 h-3" /> Admin
                                                     </span>
                                                 )}
                                                 <span className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 ${userPerms === 'VIEW_EDIT'
@@ -547,7 +631,7 @@ export const FamilyRoom: React.FC = () => {
 
     // Selected family view
     const userPermissions = getUserPermissions(selectedFamily);
-    const creator = isCreator(selectedFamily);
+    const isUserAdmin = isAdmin(selectedFamily);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50 p-6">
@@ -601,13 +685,13 @@ export const FamilyRoom: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                                {creator && <Shield className="w-12 h-12 text-yellow-300" />}
+                                {isUserAdmin && <Shield className="w-12 h-12 text-yellow-300" />}
                             </div>
                         </div>
                     </div>
 
                     {/* Pending Requests (Creator Only) */}
-                    {creator && pendingRequests.length > 0 && (
+                    {isUserAdmin && pendingRequests.length > 0 && (
                         <div className="bg-white/70 backdrop-blur-lg rounded-3xl p-8 shadow-xl border border-white/50">
                             <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                                 <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
@@ -665,9 +749,9 @@ export const FamilyRoom: React.FC = () => {
                                                 <p className="text-sm text-gray-600">{member.user.email}</p>
                                             </div>
                                         </div>
-                                        {member.role === 'CREATOR' && (
-                                            <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-lg text-xs font-semibold">
-                                                Creator
+                                        {member.role === 'ADMIN' && (
+                                            <div className="bg-purple-100 text-purple-800 px-3 py-1 rounded-lg text-xs font-semibold">
+                                                Admin
                                             </div>
                                         )}
                                     </div>
@@ -681,24 +765,52 @@ export const FamilyRoom: React.FC = () => {
                                             )}
                                         </div>
 
-                                        {creator && member.role !== 'CREATOR' && (
+                                        {isUserAdmin && (
                                             <div className="flex gap-2">
-                                                <select
-                                                    value={member.permissions}
-                                                    onChange={(e) => handleUpdatePermissions(member.id, e.target.value as any)}
-                                                    disabled={loading}
-                                                    className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white disabled:opacity-50"
-                                                >
-                                                    <option value="VIEW_ONLY">View Only</option>
-                                                    <option value="VIEW_EDIT">View & Edit</option>
-                                                </select>
-                                                <button
-                                                    onClick={() => handleRemoveMember(member.id)}
-                                                    disabled={loading}
-                                                    className="text-red-600 hover:text-red-700 p-1 disabled:opacity-50"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                {/* Promote/Demote Admin Buttons */}
+                                                {member.role === 'MEMBER' && (
+                                                    <button
+                                                        onClick={() => handlePromoteToAdmin(member.id)}
+                                                        disabled={loading}
+                                                        className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                                                        title="Promote to Admin"
+                                                    >
+                                                        Make Admin
+                                                    </button>
+                                                )}
+                                                {member.role === 'ADMIN' && user && member.user.id !== user.id && (
+                                                    <button
+                                                        onClick={() => handleDemoteFromAdmin(member.id)}
+                                                        disabled={loading}
+                                                        className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                                                        title="Demote from Admin"
+                                                    >
+                                                        Remove Admin
+                                                    </button>
+                                                )}
+
+                                                {/* Permissions & Remove for non-admin members */}
+                                                {member.role === 'MEMBER' && (
+                                                    <>
+                                                        <select
+                                                            value={member.permissions}
+                                                            onChange={(e) => handleUpdatePermissions(member.id, e.target.value as any)}
+                                                            disabled={loading}
+                                                            className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white disabled:opacity-50"
+                                                        >
+                                                            <option value="VIEW_ONLY">View Only</option>
+                                                            <option value="VIEW_EDIT">View & Edit</option>
+                                                        </select>
+                                                        <button
+                                                            onClick={() => handleRemoveMember(member.id)}
+                                                            disabled={loading}
+                                                            className="text-red-600 hover:text-red-700 p-1 disabled:opacity-50"
+                                                            title="Remove Member"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -708,7 +820,7 @@ export const FamilyRoom: React.FC = () => {
 
                         {/* Family Actions */}
                         <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
-                            {!creator && (
+                            {!isUserAdmin && (
                                 <button
                                     onClick={handleLeaveFamily}
                                     disabled={loading}
@@ -718,7 +830,7 @@ export const FamilyRoom: React.FC = () => {
                                     Leave Family
                                 </button>
                             )}
-                            {creator && (
+                            {isUserAdmin && (
                                 <button
                                     onClick={() => handleDeleteFamily(selectedFamily.id)}
                                     disabled={loading}
@@ -777,12 +889,41 @@ export const FamilyRoom: React.FC = () => {
                                 </label>
                             </div>
                             <button
-                                onClick={handleAcceptRequest}
+                                onClick={() => handleAcceptRequest(selectedRequest.id)}
                                 disabled={loading}
                                 className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:from-green-700 hover:to-blue-700 transition-all duration-300 disabled:opacity-50"
                             >
                                 {loading ? 'Accepting...' : 'Accept & Add Member'}
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Confirmation Modal */}
+                {confirmAction && (
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+                            <h3 className="text-2xl font-bold text-gray-800 mb-4">{confirmAction.title}</h3>
+                            <p className="text-gray-600 mb-6">{confirmAction.message}</p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setConfirmAction(null)}
+                                    className="flex-1 px-4 py-2.5 rounded-lg font-semibold bg-gray-200 hover:bg-gray-300 text-gray-800 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmAction.onConfirm}
+                                    className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-white transition-colors ${confirmAction.type === 'danger'
+                                        ? 'bg-red-600 hover:bg-red-700'
+                                        : confirmAction.type === 'warning'
+                                            ? 'bg-orange-600 hover:bg-orange-700'
+                                            : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
+                                >
+                                    {confirmAction.confirmText || 'Confirm'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

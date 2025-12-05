@@ -1,16 +1,18 @@
 import React, { useState } from "react";
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Calendar, 
-  Tag, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Calendar,
+  Tag,
   CreditCard,
   Download,
   ArrowUpRight,
   ArrowDownLeft,
-  Smartphone
+  Smartphone,
+  Edit2,
+  X
 } from "lucide-react";
 import { useFinance } from "../contexts/FinanceContext";
 import { useAlerts } from "../contexts/AlertContext";
@@ -27,6 +29,7 @@ export const Transactions: React.FC = () => {
   const [showSMSSimulator, setShowSMSSimulator] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; category: string } | null>(null);
   const [isAddingTransaction, setIsAddingTransaction] = useState(false);
   const [isParsingSMS, setIsParsingSMS] = useState(false);
   const [isUpdatingTransaction, setIsUpdatingTransaction] = useState(false);
@@ -126,9 +129,8 @@ export const Transactions: React.FC = () => {
         addAlert({
           type: "info",
           title: "Large Transaction Added",
-          message: `${
-            newTransaction.type === "income" ? "Income" : "Expense"
-          } of ${formatAmount(amount)} has been recorded`,
+          message: `${newTransaction.type === "income" ? "Income" : "Expense"
+            } of ${formatAmount(amount)} has been recorded`,
         });
       }
 
@@ -176,22 +178,22 @@ export const Transactions: React.FC = () => {
       let type: "income" | "expense" = "expense";
       let description = "SMS Transaction";
       let category = "Other";
-      
+
       // Extract amount using regex
-      const amountMatch = smsText.match(/(?:rs\.?|inr|₹)\s*([0-9,]+(?:\.[0-9]{2})?)/i) || 
-                         smsText.match(/([0-9,]+(?:\.[0-9]{2})?)\s*(?:rs\.?|inr|₹)/i);
-      
+      const amountMatch = smsText.match(/(?:rs\.?|inr|₹)\s*([0-9,]+(?:\.[0-9]{2})?)/i) ||
+        smsText.match(/([0-9,]+(?:\.[0-9]{2})?)\s*(?:rs\.?|inr|₹)/i);
+
       if (amountMatch) {
         amount = parseFloat(amountMatch[1].replace(/,/g, ''));
       }
-      
+
       // Determine transaction type
       if (smsLower.includes('credited') || smsLower.includes('received') || smsLower.includes('deposit')) {
         type = "income";
       } else if (smsLower.includes('debited') || smsLower.includes('spent') || smsLower.includes('paid')) {
         type = "expense";
       }
-      
+
       // Determine category based on keywords
       if (smsLower.includes('atm') || smsLower.includes('withdrawal')) {
         category = "Other";
@@ -210,10 +212,10 @@ export const Transactions: React.FC = () => {
         description = "Salary Credit";
         type = "income";
       }
-      
+
       if (amount > 0) {
         const transactionAmount = type === "income" ? Math.abs(amount) : -Math.abs(amount);
-        
+
         await addTransaction({
           description,
           amount: transactionAmount,
@@ -344,6 +346,36 @@ export const Transactions: React.FC = () => {
     }
   };
 
+  const handleUpdateCategory = async () => {
+    if (!editingCategory) return;
+
+    try {
+      // Import apiService at the top if not already imported
+      const apiService = (await import('../services/api')).default;
+
+      await apiService.updateTransaction(editingCategory.id, {
+        category: editingCategory.category
+      });
+
+      addAlert({
+        type: 'success',
+        title: 'Category Updated',
+        message: 'Transaction category updated successfully',
+      });
+
+      setEditingCategory(null);
+      // Refresh transactions
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating category:', error);
+      addAlert({
+        type: 'error',
+        title: 'Update Failed',
+        message: 'Failed to update category. Please try again.',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -436,11 +468,10 @@ export const Transactions: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div
-                    className={`p-6 rounded-2xl border-2 ${
-                      transaction.amount > 0
-                        ? "card-glass-green border-green-300/50"
-                        : "card-glass-orange border-red-300/50"
-                    }`}
+                    className={`p-6 rounded-2xl border-2 ${transaction.amount > 0
+                      ? "card-glass-green border-green-300/50"
+                      : "card-glass-orange border-red-300/50"
+                      }`}
                   >
                     {transaction.type === "income" ? (
                       <ArrowUpRight className="h-5 w-5" />
@@ -457,18 +488,17 @@ export const Transactions: React.FC = () => {
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-white/30 backdrop-blur-sm text-slate-900 border border-white/20">
                         {transaction.category}
                       </span>
+                      <button
+                        onClick={() => setEditingCategory({ id: transaction.id, category: transaction.category })}
+                        className="p-1 hover:bg-purple-100 rounded transition-colors"
+                        title="Edit Category"
+                      >
+                        <Edit2 className="h-3 w-3 text-purple-600" />
+                      </button>
                     </div>
                     <div className="flex items-center space-x-2 text-sm text-slate-900">
                       <Calendar className="h-4 w-4" />
                       <span>{new Date(transaction.date).toLocaleDateString()}</span>
-                      <Tag className="h-4 w-4 ml-4" />
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        transaction.amount > 0
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}>
-                        {transaction.category}
-                      </span>
                       <CreditCard className="h-4 w-4 ml-4" />
                       <span className="text-xs text-slate-900 font-bold">{transaction.source}</span>
                     </div>
@@ -478,18 +508,17 @@ export const Transactions: React.FC = () => {
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <p
-                      className={`text-2xl font-bold ${
-                        transaction.amount > 0
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
+                      className={`text-2xl font-bold ${transaction.amount > 0
+                        ? "text-green-600"
+                        : "text-red-600"
+                        }`}
                     >
                       {transaction.amount > 0 ? "+" : "-"} {formatAmount(Math.abs(transaction.amount))}
                     </p>
                   </div>
 
                   <div className="flex space-x-2">
-                    <button 
+                    <button
                       onClick={() => handleEditTransaction(transaction)}
                       className="p-3 text-slate-800 rounded-xl bg-white/20 backdrop-blur-sm border border-white/20 hover:bg-white/30 transition-colors"
                     >
@@ -802,6 +831,57 @@ export const Transactions: React.FC = () => {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Category Modal */}
+      {editingCategory && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="card-ultra-glass p-8 w-full max-w-md mx-4 glow-purple">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-gradient">Edit Category</h3>
+              <button
+                onClick={() => setEditingCategory(null)}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  Category
+                </label>
+                <select
+                  value={editingCategory.category}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, category: e.target.value })}
+                  className="input-premium w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  {categories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex space-x-3 pt-2">
+                <button
+                  onClick={() => setEditingCategory(null)}
+                  className="btn-secondary flex-1 bg-white/80 backdrop-blur-sm text-slate-700 font-semibold py-3 px-6 rounded-xl border border-white/30 shadow-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateCategory}
+                  className="btn-primary flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                >
+                  Update
+                </button>
+              </div>
             </div>
           </div>
         </div>

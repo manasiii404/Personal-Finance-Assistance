@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { familyController } from '@/controllers/familyController';
 import { familyDataController } from '@/controllers/familyDataController';
+import { familyFinanceController } from '@/controllers/familyFinanceController';
 import { authenticateToken } from '@/middleware/auth';
 
 const router = Router();
@@ -35,11 +36,20 @@ router.put('/my-permissions', familyController.updateMyPermissions);
 // Update member permissions (creator only) - DEPRECATED, kept for compatibility
 router.put('/members/:memberId/permissions', familyController.updatePermissions);
 
-// Remove a member from family (creator only)
+// Remove a member from family (creator/admin)
 router.delete('/members/:memberId', familyController.removeMember);
+
+// Promote member to admin (creator only)
+router.post('/members/:memberId/promote', familyController.promoteToAdmin);
+
+// Demote admin to member (creator only)
+router.post('/members/:memberId/demote', familyController.demoteFromAdmin);
 
 // Leave family (member only)
 router.post('/leave', familyController.leaveFamily);
+
+// Toggle transaction sharing
+router.post('/:familyId/share-transactions', familyController.toggleTransactionSharing);
 
 // Delete family (creator only)
 router.delete('/:familyId', familyController.deleteFamily);
@@ -49,5 +59,18 @@ router.get('/:familyId/transactions', familyDataController.getFamilyTransactions
 router.get('/:familyId/budgets', familyDataController.getFamilyBudgets);
 router.get('/:familyId/goals', familyDataController.getFamilyGoals);
 router.get('/:familyId/summary', familyDataController.getFamilySummary);
+
+// ===== FAMILY BUDGETS ROUTES =====
+router.post('/:familyId/budgets', familyFinanceController.createFamilyBudget);
+router.get('/:familyId/budgets-new', familyFinanceController.getFamilyBudgets);
+router.put('/:familyId/budgets/:budgetId', familyFinanceController.updateFamilyBudget);
+router.delete('/:familyId/budgets/:budgetId', familyFinanceController.deleteFamilyBudget);
+
+// ===== FAMILY GOALS ROUTES =====
+router.post('/:familyId/goals', familyFinanceController.createFamilyGoal);
+router.get('/:familyId/goals-new', familyFinanceController.getFamilyGoals);
+router.post('/:familyId/goals/:goalId/contribute', familyFinanceController.contributeToGoal);
+router.put('/:familyId/goals/:goalId', familyFinanceController.updateFamilyGoal);
+router.delete('/:familyId/goals/:goalId', familyFinanceController.deleteFamilyGoal);
 
 export default router;

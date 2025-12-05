@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
@@ -36,26 +36,20 @@ async function main() {
 
   console.log('✅ Test user created');
 
-  // Generate 100+ diverse transactions over the past 6 months for demo user
+  // Generate transactions
   const transactions = [];
   const today = new Date();
 
-  // Income transactions (20 total)
+  // Income transactions for demo user
   const incomeTransactions = [
-    // Salary (monthly)
     { desc: 'Monthly Salary', amount: 5000, category: 'Salary', months: [0, 1, 2, 3, 4, 5] },
-    // Freelance (irregular)
     { desc: 'Freelance Web Design', amount: 1200, category: 'Freelance', months: [0, 2, 4] },
     { desc: 'Consulting Project', amount: 800, category: 'Freelance', months: [1, 3] },
-    // Investment (quarterly)
     { desc: 'Stock Dividends', amount: 350, category: 'Investment', months: [0, 3] },
     { desc: 'Mutual Fund Returns', amount: 500, category: 'Investment', months: [1, 4] },
-    // Business
     { desc: 'Side Business Revenue', amount: 600, category: 'Business', months: [0, 2, 5] },
-    // Gifts
     { desc: 'Birthday Gift', amount: 200, category: 'Gifts', months: [2] },
     { desc: 'Holiday Bonus', amount: 1000, category: 'Gifts', months: [5] },
-    // Other
     { desc: 'Rental Income', amount: 1500, category: 'Other', months: [0, 1, 2, 3, 4, 5] },
   ];
 
@@ -71,16 +65,16 @@ async function main() {
         description: item.desc,
         amount: item.amount,
         category: item.category,
-        type: 'INCOME' as const,
-        source: item.category === 'Salary' ? 'Bank Transfer' : 'Bank Transfer',
+        type: 'INCOME',
+        source: 'Bank Transfer',
       });
     });
   });
 
-  // Expense transactions (80+ total)
+  // Expense categories
   const expenseCategories = [
     {
-      category: 'Food & Dining', items: [
+      category: 'Food', items: [
         { desc: 'Grocery Shopping', min: 80, max: 150 },
         { desc: 'Restaurant Dinner', min: 30, max: 80 },
         { desc: 'Coffee Shop', min: 5, max: 15 },
@@ -112,7 +106,7 @@ async function main() {
       ]
     },
     {
-      category: 'Bills & Utilities', items: [
+      category: 'Bills', items: [
         { desc: 'Electricity Bill', min: 80, max: 150 },
         { desc: 'Internet Bill', min: 50, max: 80 },
         { desc: 'Phone Bill', min: 30, max: 60 },
@@ -135,20 +129,11 @@ async function main() {
         { desc: 'Study Materials', min: 15, max: 50 },
       ]
     },
-    {
-      category: 'Travel', items: [
-        { desc: 'Flight Tickets', min: 200, max: 600 },
-        { desc: 'Hotel Booking', min: 100, max: 300 },
-        { desc: 'Travel Insurance', min: 30, max: 80 },
-        { desc: 'Vacation Expenses', min: 150, max: 400 },
-      ]
-    },
   ];
 
-  // Generate expenses over 6 months for demo user
+  // Generate expenses for demo user
   for (let monthOffset = 0; monthOffset < 6; monthOffset++) {
     expenseCategories.forEach(cat => {
-      // 2-4 transactions per category per month
       const transactionsPerMonth = Math.floor(Math.random() * 3) + 2;
 
       for (let i = 0; i < transactionsPerMonth; i++) {
@@ -165,14 +150,14 @@ async function main() {
           description: item.desc,
           amount: -amount,
           category: cat.category,
-          type: 'EXPENSE' as const,
+          type: 'EXPENSE',
           source: amount > 100 ? 'Card Transaction' : 'Mobile Payment',
         });
       }
     });
   }
 
-  // Generate transactions for test user (t1@g.com) - different spending patterns
+  // Generate transactions for test user
   const testUserIncomeTransactions = [
     { desc: 'Monthly Salary', amount: 4500, category: 'Salary', months: [0, 1, 2, 3, 4, 5] },
     { desc: 'Freelance Work', amount: 900, category: 'Freelance', months: [0, 2, 4] },
@@ -191,20 +176,20 @@ async function main() {
         description: item.desc,
         amount: item.amount,
         category: item.category,
-        type: 'INCOME' as const,
+        type: 'INCOME',
         source: 'Bank Transfer',
       });
     });
   });
 
-  // Generate expenses for test user - different spending patterns
+  // Generate expenses for test user
   for (let monthOffset = 0; monthOffset < 6; monthOffset++) {
     expenseCategories.forEach(cat => {
-      const transactionsPerMonth = Math.floor(Math.random() * 2) + 1; // Less transactions than demo user
+      const transactionsPerMonth = Math.floor(Math.random() * 2) + 1;
 
       for (let i = 0; i < transactionsPerMonth; i++) {
         const item = cat.items[Math.floor(Math.random() * cat.items.length)];
-        const amount = Math.floor(Math.random() * (item.max - item.min) * 0.8) + item.min * 0.8; // Slightly lower amounts
+        const amount = Math.floor(Math.random() * (item.max - item.min) * 0.8) + item.min * 0.8;
 
         const date = new Date(today);
         date.setMonth(date.getMonth() - monthOffset);
@@ -216,7 +201,7 @@ async function main() {
           description: item.desc,
           amount: -amount,
           category: cat.category,
-          type: 'EXPENSE' as const,
+          type: 'EXPENSE',
           source: amount > 100 ? 'Card Transaction' : 'Mobile Payment',
         });
       }
@@ -232,30 +217,7 @@ async function main() {
 
   console.log(`✅ ${transactions.length} transactions created`);
 
-  // Create comprehensive budgets for demo user
-  const budgets = [
-    { category: 'Food & Dining', limit: 500, spent: 420, period: 'MONTHLY' as const },
-    { category: 'Transportation', limit: 300, spent: 280, period: 'MONTHLY' as const },
-    { category: 'Shopping', limit: 400, spent: 350, period: 'MONTHLY' as const },
-    { category: 'Entertainment', limit: 200, spent: 180, period: 'MONTHLY' as const },
-    { category: 'Bills & Utilities', limit: 350, spent: 320, period: 'MONTHLY' as const },
-    { category: 'Healthcare', limit: 250, spent: 200, period: 'MONTHLY' as const },
-    { category: 'Education', limit: 300, spent: 150, period: 'MONTHLY' as const },
-    { category: 'Travel', limit: 600, spent: 450, period: 'MONTHLY' as const },
-  ];
-
-  for (const budget of budgets) {
-    await prisma.budget.create({
-      data: {
-        userId: demoUser.id,
-        ...budget,
-      },
-    });
-  }
-
-  console.log('✅ Budgets created for demo user');
-
-  // Create diverse goals for demo user
+  // Create goals for demo user
   const goals = [
     {
       title: 'Emergency Fund',
@@ -278,47 +240,15 @@ async function main() {
       deadline: new Date(today.getFullYear(), today.getMonth() + 2, 1),
       category: 'Shopping',
     },
-    {
-      title: 'Investment Portfolio',
-      target: 20000,
-      current: 8500,
-      deadline: new Date(today.getFullYear() + 2, 5, 30),
-      category: 'Investment',
-    },
-    {
-      title: 'Car Down Payment',
-      target: 8000,
-      current: 3200,
-      deadline: new Date(today.getFullYear() + 1, 2, 15),
-      category: 'Transportation',
-    },
-    {
-      title: 'Home Renovation',
-      target: 15000,
-      current: 4500,
-      deadline: new Date(today.getFullYear() + 1, 8, 1),
-      category: 'Other',
-    },
   ];
 
   for (const goal of goals) {
-    const createdGoal = await prisma.goal.create({
+    await prisma.goal.create({
       data: {
         userId: demoUser.id,
         ...goal,
       },
     });
-
-    if (goal.current > 0) {
-      await prisma.goalContribution.create({
-        data: {
-          goalId: createdGoal.id,
-          userId: demoUser.id,
-          amount: goal.current,
-          date: new Date(),
-        }
-      });
-    }
   }
 
   console.log('✅ Goals created for demo user');
@@ -342,23 +272,12 @@ async function main() {
   ];
 
   for (const goal of testUserGoals) {
-    const createdGoal = await prisma.goal.create({
+    await prisma.goal.create({
       data: {
         userId: testUser.id,
         ...goal,
       },
     });
-
-    if (goal.current > 0) {
-      await prisma.goalContribution.create({
-        data: {
-          goalId: createdGoal.id,
-          userId: testUser.id,
-          amount: goal.current,
-          date: new Date(),
-        }
-      });
-    }
   }
 
   console.log('✅ Goals created for test user');
@@ -382,7 +301,6 @@ async function main() {
       role: 'CREATOR',
       permissions: 'VIEW_EDIT',
       status: 'ACCEPTED',
-      isSharingTransactions: true,
     },
   });
 
@@ -394,82 +312,17 @@ async function main() {
       role: 'MEMBER',
       permissions: 'VIEW_EDIT',
       status: 'ACCEPTED',
-      isSharingTransactions: true,
     },
   });
 
   console.log('✅ Family members added to "Manasi\'s Fam"');
 
-  // Create varied alerts for demo user
-  const alerts = [
-    {
-      type: 'WARNING' as const,
-      title: 'Budget Alert',
-      message: 'You have spent 84% of your Food & Dining budget',
-      read: false,
-    },
-    {
-      type: 'SUCCESS' as const,
-      title: 'Goal Progress',
-      message: 'You are 80% towards your New Laptop goal!',
-      read: false,
-    },
-    {
-      type: 'INFO' as const,
-      title: 'Monthly Summary',
-      message: 'Your monthly report is ready to view',
-      read: true,
-    },
-    {
-      type: 'ERROR' as const,
-      title: 'Budget Exceeded',
-      message: 'Transportation budget exceeded by ₹50',
-      read: false,
-    },
-    {
-      type: 'WARNING' as const,
-      title: 'Unusual Spending',
-      message: 'Higher than usual spending detected in Shopping category',
-      read: false,
-    },
-    {
-      type: 'SUCCESS' as const,
-      title: 'Savings Milestone',
-      message: 'Congratulations! You saved ₹1000 this month',
-      read: true,
-    },
-    {
-      type: 'INFO' as const,
-      title: 'Bill Reminder',
-      message: 'Electricity bill due in 3 days',
-      read: false,
-    },
-    {
-      type: 'WARNING' as const,
-      title: 'Low Balance',
-      message: 'Your Emergency Fund is below recommended level',
-      read: true,
-    },
-  ];
-
-  for (const alert of alerts) {
-    await prisma.alert.create({
-      data: {
-        userId: demoUser.id,
-        ...alert,
-      },
-    });
-  }
-
-  console.log('✅ Alerts created');
   console.log('🎉 Database seeding completed successfully!');
   console.log('\n📊 Summary:');
   console.log(`   - Users: demo@example.com, t1@g.com`);
   console.log(`   - Family: "Manasi's Fam" (Room Code: MANASI)`);
   console.log(`   - Transactions: ${transactions.length} (both users)`);
-  console.log(`   - Budgets: ${budgets.length} (demo user)`);
   console.log(`   - Goals: ${goals.length + testUserGoals.length} (both users)`);
-  console.log(`   - Alerts: ${alerts.length} (demo user)`);
 }
 
 main()

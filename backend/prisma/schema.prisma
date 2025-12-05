@@ -26,6 +26,7 @@ model User {
   alerts           Alert[]
   createdFamilies  Family[]        @relation("FamilyCreator")
   familyMemberships FamilyMember[]
+  goalContributions GoalContribution[]
 
   @@map("users")
 }
@@ -49,17 +50,19 @@ model Transaction {
 }
 
 model Budget {
-  id     String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId String   @db.ObjectId
-  category String
-  limit   Float
-  spent   Float @default(0)
-  period  BudgetPeriod
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  familyId  String?  @db.ObjectId
+  category  String
+  limit     Float
+  spent     Float @default(0)
+  period    BudgetPeriod
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   @@map("budgets")
 }
@@ -77,6 +80,9 @@ model Goal {
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  familyId String? @db.ObjectId
+  family   Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
 
   @@map("goals")
 }
@@ -145,6 +151,8 @@ model Family {
   // Relations
   creator User           @relation("FamilyCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   members FamilyMember[]
+  budgets Budget[]
+  goals   Goal[]
 
   @@map("families")
 }
@@ -162,6 +170,7 @@ model FamilyMember {
   // Relations
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isSharingTransactions Boolean @default(false)
 
   @@unique([familyId, userId])
   @@map("family_members")
@@ -169,6 +178,7 @@ model FamilyMember {
 
 enum FamilyRole {
   CREATOR
+  ADMIN
   MEMBER
 }
 
@@ -181,4 +191,18 @@ enum MemberStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+model GoalContribution {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  goalId    String   @db.ObjectId
+  userId    String   @db.ObjectId
+  amount    Float
+  date      DateTime @default(now())
+  
+  // Relations
+  goal Goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("goal_contributions")
 }
