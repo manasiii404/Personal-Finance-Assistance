@@ -30,7 +30,7 @@ export class AuthService {
           email: data.email,
           password: hashedPassword,
           name: data.name,
-          phone: data.phone,
+          ...(data.phone && { phone: data.phone }),
         },
         select: {
           id: true,
