@@ -33,7 +33,7 @@ export class AIService {
   ): Promise<FinancialInsights> {
     try {
       const openai = this.getOpenAI();
-      
+
       if (!openai) {
         return this.generateBasicInsights(
           totalIncome,
@@ -109,7 +109,7 @@ export class AIService {
   ): FinancialInsights {
     const netIncome = totalIncome - totalExpenses;
     const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
-    
+
     const recommendations = [];
 
     // Savings rate recommendations
@@ -200,7 +200,7 @@ Please provide 3-5 actionable financial recommendations based on this data.
   static async analyzeSpendingPatterns(spendingByCategory: SpendingByCategory[]): Promise<string[]> {
     try {
       const openai = this.getOpenAI();
-      
+
       if (!openai) {
         return this.generateBasicSpendingAnalysis(spendingByCategory);
       }
@@ -266,7 +266,7 @@ Provide 3-4 specific insights about spending patterns and potential optimization
   static async generateGoalRecommendations(goals: any[]): Promise<string[]> {
     try {
       const openai = this.getOpenAI();
-      
+
       if (!openai) {
         return this.generateBasicGoalRecommendations(goals);
       }
@@ -327,4 +327,259 @@ Provide 3-4 specific recommendations for achieving these goals.
 
     return recommendations;
   }
+
+  // Generate monthly recommendations (privacy-preserving)
+  static async generateMonthlyRecommendations(
+    stats: any,
+    categoryData: any[],
+    budgets: any[],
+    goals: any[]
+  ): Promise<string[]> {
+    try {
+      const openai = this.getOpenAI();
+
+      if (!openai) {
+        return this.generateBasicMonthlyRecommendations(stats, categoryData, budgets);
+      }
+
+      // Privacy: Send only aggregated, anonymized data
+      const anonymizedData = {
+        savingsRate: stats.savingsRate.toFixed(1),
+        topCategories: categoryData.slice(0, 3).map(c => ({
+          category: c.category,
+          percentage: c.percentage.toFixed(1)
+        })),
+        budgetStatus: budgets.length > 0 ? {
+          onTrack: budgets.filter(b => b.spent <= b.limit).length,
+          total: budgets.length,
+        } : null,
+        goalProgress: goals.length > 0 ? {
+          completed: goals.filter(g => g.percentage >= 100).length,
+          total: goals.length,
+        } : null,
+      };
+
+      const prompt = `
+Based on this monthly financial summary, provide 3-4 actionable recommendations:
+
+Savings Rate: ${anonymizedData.savingsRate}%
+Top Spending: ${anonymizedData.topCategories.map(c => `${c.category} (${c.percentage}%)`).join(', ')}
+Budget Performance: ${anonymizedData.budgetStatus ? `${anonymizedData.budgetStatus.onTrack}/${anonymizedData.budgetStatus.total} on track` : 'No budgets set'}
+Goal Progress: ${anonymizedData.goalProgress ? `${anonymizedData.goalProgress.completed}/${anonymizedData.goalProgress.total} completed` : 'No goals set'}
+
+Provide specific, actionable recommendations for next month.
+      `.trim();
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a financial advisor. Provide concise, actionable monthly financial recommendations.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      });
+
+      return this.parseAIResponse(response.choices[0]?.message?.content || '');
+    } catch (error) {
+      logger.error('Error generating monthly recommendations:', error);
+      return this.generateBasicMonthlyRecommendations(stats, categoryData, budgets);
+    }
+  }
+
+  // Generate basic monthly recommendations
+  private static generateBasicMonthlyRecommendations(
+    stats: any,
+    categoryData: any[],
+    budgets: any[]
+  ): string[] {
+    const recommendations = [];
+
+    if (stats.savingsRate < 10) {
+      recommendations.push('Aim to save at least 10% of your income next month');
+    } else if (stats.savingsRate > 20) {
+      recommendations.push('Excellent savings rate! Consider investing surplus funds');
+    }
+
+    const topCategory = categoryData[0];
+    if (topCategory && topCategory.percentage > 35) {
+      recommendations.push(`Review ${topCategory.category} spending - it's ${topCategory.percentage.toFixed(1)}% of your expenses`);
+    }
+
+    const overBudget = budgets.filter(b => b.spent > b.limit);
+    if (overBudget.length > 0) {
+      recommendations.push(`${overBudget.length} budget(s) exceeded - adjust limits or reduce spending`);
+    }
+
+    if (recommendations.length === 0) {
+      recommendations.push('Keep maintaining your current financial habits');
+    }
+
+    return recommendations;
+  }
+
+  // Generate category-specific insights (privacy-preserving)
+  static async generateCategoryInsights(categoryData: any[]): Promise<string[]> {
+    try {
+      const openai = this.getOpenAI();
+
+      if (!openai) {
+        return this.generateBasicCategoryInsights(categoryData);
+      }
+
+      // Privacy: Send only percentages, not absolute amounts
+      const anonymizedCategories = categoryData.slice(0, 5).map(c => ({
+        category: c.category,
+        percentage: c.percentage.toFixed(1),
+        transactionCount: c.transactionCount
+      }));
+
+      const prompt = `
+Analyze these spending categories and provide insights:
+
+${anonymizedCategories.map(c => `${c.category}: ${c.percentage}% (${c.transactionCount} transactions)`).join('\n')}
+
+Provide 3-4 specific insights about spending distribution and optimization opportunities.
+      `.trim();
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a financial analyst. Analyze spending categories and provide actionable insights.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      });
+
+      return this.parseAIResponse(response.choices[0]?.message?.content || '');
+    } catch (error) {
+      logger.error('Error generating category insights:', error);
+      return this.generateBasicCategoryInsights(categoryData);
+    }
+  }
+
+  // Generate basic category insights
+  private static generateBasicCategoryInsights(categoryData: any[]): string[] {
+    const insights = [];
+    const topThree = categoryData.slice(0, 3);
+
+    if (topThree.length > 0) {
+      insights.push(`Top 3 categories account for ${topThree.reduce((sum, c) => sum + c.percentage, 0).toFixed(1)}% of spending`);
+    }
+
+    const highFrequency = categoryData.find(c => c.transactionCount > 20);
+    if (highFrequency) {
+      insights.push(`${highFrequency.category} has frequent transactions - consider consolidating or automating`);
+    }
+
+    const diversified = categoryData.length > 8;
+    if (diversified) {
+      insights.push('Spending is well-diversified across categories');
+    } else if (categoryData.length < 4) {
+      insights.push('Consider tracking more specific categories for better insights');
+    }
+
+    return insights.length > 0 ? insights : ['Track spending regularly to identify patterns'];
+  }
+
+  // Generate budget suggestions (privacy-preserving)
+  static async generateBudgetSuggestions(
+    stats: any,
+    categoryData: any[],
+    budgets: any[]
+  ): Promise<string[]> {
+    try {
+      const openai = this.getOpenAI();
+
+      if (!openai) {
+        return this.generateBasicBudgetSuggestions(stats, categoryData, budgets);
+      }
+
+      // Privacy: Use normalized data (percentage of income)
+      const normalizedData = {
+        savingsRate: stats.savingsRate.toFixed(1),
+        topSpending: categoryData.slice(0, 3).map(c => ({
+          category: c.category,
+          percentageOfTotal: c.percentage.toFixed(1)
+        })),
+        budgetCoverage: budgets.length > 0 ? {
+          categoriesBudgeted: budgets.length,
+          totalCategories: categoryData.length,
+        } : null,
+      };
+
+      const prompt = `
+Based on this spending data, suggest budget improvements:
+
+Savings Rate: ${normalizedData.savingsRate}%
+Top Spending: ${normalizedData.topSpending.map(c => `${c.category} (${c.percentageOfTotal}%)`).join(', ')}
+Budget Coverage: ${normalizedData.budgetCoverage ? `${normalizedData.budgetCoverage.categoriesBudgeted}/${normalizedData.budgetCoverage.totalCategories} categories` : 'No budgets set'}
+
+Provide 3-4 specific budget recommendations.
+      `.trim();
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a budgeting expert. Provide specific, practical budget recommendations.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        max_tokens: 400,
+        temperature: 0.7,
+      });
+
+      return this.parseAIResponse(response.choices[0]?.message?.content || '');
+    } catch (error) {
+      logger.error('Error generating budget suggestions:', error);
+      return this.generateBasicBudgetSuggestions(stats, categoryData, budgets);
+    }
+  }
+
+  // Generate basic budget suggestions
+  private static generateBasicBudgetSuggestions(
+    stats: any,
+    categoryData: any[],
+    budgets: any[]
+  ): string[] {
+    const suggestions = [];
+
+    const unbudgetedCategories = categoryData.filter(
+      c => !budgets.some(b => b.category === c.category)
+    );
+
+    if (unbudgetedCategories.length > 0) {
+      suggestions.push(`Set budgets for ${unbudgetedCategories.slice(0, 2).map(c => c.category).join(' and ')}`);
+    }
+
+    const topCategory = categoryData[0];
+    if (topCategory && topCategory.percentage > 30) {
+      suggestions.push(`Consider setting a stricter budget for ${topCategory.category} to reduce overspending`);
+    }
+
+    if (stats.savingsRate < 15) {
+      suggestions.push('Allocate at least 15% of income to savings before setting other budgets');
+    }
+
+    return suggestions.length > 0 ? suggestions : ['Review and adjust budgets monthly based on actual spending'];
+  }
 }
+

@@ -17,32 +17,44 @@ const router = Router();
 router.use(authenticateToken);
 
 // Analytics endpoints
-router.get('/insights', 
+router.get('/insights',
   validateQuery(analyticsFiltersSchema),
   AnalyticsController.getFinancialInsights
 );
 
-router.get('/spending-analysis', 
+router.get('/spending-analysis',
   validateQuery(analyticsFiltersSchema),
   AnalyticsController.getSpendingAnalysis
 );
 
-router.get('/goal-recommendations', 
+router.get('/goal-recommendations',
   AnalyticsController.getGoalRecommendations
 );
 
-router.get('/monthly-trends', 
+router.get('/monthly-trends',
   validateQuery(monthsSchema),
   AnalyticsController.getMonthlyTrends
 );
 
-router.get('/category-breakdown', 
+router.get('/category-breakdown',
+  validateQuery(analyticsFiltersSchema),
+  AnalyticsController.getCategoryBreakdown
+);
+
+// Root analytics endpoint (returns comprehensive analytics data)
+router.get('/',
+  validateQuery(analyticsFiltersSchema),
+  AnalyticsController.getFinancialInsights
+);
+
+// Categories endpoint (returns category breakdown)
+router.get('/categories',
   validateQuery(analyticsFiltersSchema),
   AnalyticsController.getCategoryBreakdown
 );
 
 // Export
-router.get('/export/report', 
+router.get('/export/report',
   exportLimiter,
   validateQuery(analyticsFiltersSchema),
   AnalyticsController.exportAnalyticsReport

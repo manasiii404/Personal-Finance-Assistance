@@ -1,4 +1,5 @@
 import express from 'express';
+// Backend server with Analytics, Reports, Export, and Import features
 import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -22,6 +23,9 @@ import smsRoutes from '@/routes/sms';
 import familyRoutes from '@/routes/family';
 import aiInsightsRoutes from '@/routes/aiInsights';
 import notificationRoutes from '@/routes/notifications';
+import exportRoutes from '@/routes/export';
+import importRoutes from '@/routes/import';
+import reportsRoutes from '@/routes/reports';
 
 const app = express();
 const httpServer = createServer(app);
@@ -88,6 +92,9 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/family', familyRoutes);
 app.use('/api/ai-insights', aiInsightsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/export', exportRoutes);
+app.use('/api/import', importRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

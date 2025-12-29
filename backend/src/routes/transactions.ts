@@ -3,11 +3,11 @@ import { TransactionController } from '@/controllers/transactionController';
 import { authenticateToken } from '@/middleware/auth';
 import { validate, validateQuery } from '@/middleware/validation';
 import { smsLimiter, exportLimiter } from '@/middleware/rateLimiter';
-import { 
-  createTransactionSchema, 
+import {
+  createTransactionSchema,
   updateTransactionSchema,
   transactionFiltersSchema,
-  smsParseSchema 
+  smsParseSchema
 } from '@/utils/validation';
 
 const router = Router();
@@ -16,59 +16,64 @@ const router = Router();
 router.use(authenticateToken);
 
 // Transaction CRUD operations
-router.post('/', 
+router.post('/',
   validate(createTransactionSchema),
   TransactionController.createTransaction
 );
 
-router.get('/', 
+router.get('/',
   validateQuery(transactionFiltersSchema),
   TransactionController.getTransactions
 );
 
-router.get('/:id', 
+router.get('/:id',
   TransactionController.getTransactionById
 );
 
-router.put('/:id', 
+// Bulk operations (must be before /:id routes to avoid conflicts)
+router.put('/bulk-update-category',
+  TransactionController.bulkUpdateCategory
+);
+
+router.put('/:id',
   validate(updateTransactionSchema),
   TransactionController.updateTransaction
 );
 
-router.delete('/:id', 
+router.delete('/:id',
   TransactionController.deleteTransaction
 );
 
 // Statistics and analytics
-router.get('/stats/overview', 
+router.get('/stats/overview',
   TransactionController.getTransactionStats
 );
 
-router.get('/stats/categories', 
+router.get('/stats/categories',
   TransactionController.getSpendingByCategory
 );
 
 // SMS parsing
-router.post('/parse-sms', 
+router.post('/parse-sms',
   smsLimiter,
   validate(smsParseSchema),
   TransactionController.parseSMS
 );
 
-router.post('/create-from-sms', 
+router.post('/create-from-sms',
   smsLimiter,
   validate(smsParseSchema),
   TransactionController.createFromSMS
 );
 
 // Export
-router.get('/export/data', 
+router.get('/export/data',
   exportLimiter,
   TransactionController.exportTransactions
 );
 
 // Utility
-router.get('/sms/patterns', 
+router.get('/sms/patterns',
   TransactionController.getSupportedSMSPatterns
 );
 

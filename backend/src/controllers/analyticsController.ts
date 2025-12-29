@@ -24,6 +24,13 @@ export class AnalyticsController {
       end.toISOString().split('T')[0]
     );
 
+    // Get category count
+    const categoryCount = await TransactionService.getCategoryCount(
+      userId,
+      start.toISOString().split('T')[0],
+      end.toISOString().split('T')[0]
+    );
+
     // Get spending by category
     const spendingByCategory = await TransactionService.getSpendingByCategory(
       userId,
@@ -37,37 +44,8 @@ export class AnalyticsController {
     // Get goal progress
     const goalStats = await GoalService.getGoalStats(userId);
 
-    // Generate monthly trends (mock data for now)
-    const monthlyTrends = [
-      {
-        month: 'Oct 2024',
-        income: 4500,
-        expenses: 3200,
-        savings: 1300,
-        savingsRate: 28.9,
-      },
-      {
-        month: 'Nov 2024',
-        income: 4800,
-        expenses: 3500,
-        savings: 1300,
-        savingsRate: 27.1,
-      },
-      {
-        month: 'Dec 2024',
-        income: 5200,
-        expenses: 3800,
-        savings: 1400,
-        savingsRate: 26.9,
-      },
-      {
-        month: 'Jan 2025',
-        income: transactionStats.totalIncome,
-        expenses: transactionStats.totalExpenses,
-        savings: transactionStats.netIncome,
-        savingsRate: transactionStats.savingsRate,
-      },
-    ];
+    // Get real monthly trends from database
+    const monthlyTrends = await TransactionService.getMonthlyTrends(userId, 6);
 
     // Generate AI insights
     const insights = await AIService.generateInsights(
@@ -83,10 +61,37 @@ export class AnalyticsController {
       }
     );
 
+    // Return comprehensive analytics data
     res.json({
       success: true,
       message: 'Financial insights retrieved successfully',
-      data: insights,
+      data: {
+        // Core statistics
+        totalIncome: transactionStats.totalIncome,
+        totalExpenses: transactionStats.totalExpenses,
+        netIncome: transactionStats.netIncome,
+        savingsRate: transactionStats.savingsRate,
+        transactionCount: transactionStats.transactionCount,
+        categoryCount: categoryCount,
+
+        // Detailed breakdowns
+        spendingByCategory,
+        monthlyTrends,
+
+        // AI insights
+        insights,
+
+        // Budget and goals
+        budgetAlerts: budgetAlerts.map(alert => ({
+          category: alert.category,
+          message: alert.message,
+        })),
+        goalStats: {
+          totalGoals: goalStats.totalGoals,
+          completedGoals: goalStats.completedGoals,
+          overallProgress: goalStats.overallProgress,
+        },
+      },
     });
   });
 

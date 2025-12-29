@@ -9,6 +9,7 @@ import { Settings } from "./components/Settings";
 import { Navigation } from "./components/Navigation";
 import { Auth } from "./components/Auth";
 import { FamilyRoom } from "./components/FamilyRoom";
+import { Reports } from "./components/Reports";
 import { AlertProvider } from "./contexts/AlertContext";
 import { FinanceProvider } from "./contexts/FinanceContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -44,6 +45,8 @@ const AppContent: React.FC = () => {
         return <Budget />;
       case "analytics":
         return <Analytics />;
+      case "reports":
+        return <Reports />;
       case "alerts":
         return <Alerts />;
       case "goals":

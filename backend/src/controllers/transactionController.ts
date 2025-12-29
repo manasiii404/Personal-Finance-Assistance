@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { TransactionService } from '@/services/transactionService';
 import { SMSService } from '@/services/smsService';
-import { asyncHandler } from '@/middleware/errorHandler';
+import { asyncHandler, createError } from '@/middleware/errorHandler';
 import {
   CreateTransactionRequest,
   UpdateTransactionRequest,
@@ -339,6 +339,26 @@ export class TransactionController {
       success: true,
       message: 'Supported SMS patterns retrieved successfully',
       data: patterns,
+    });
+  });
+
+  // Bulk update category for all transactions
+  static bulkUpdateCategory = asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { oldCategory, newCategory } = req.body;
+
+    if (!oldCategory || !newCategory) {
+      throw createError('Both oldCategory and newCategory are required', 400);
+    }
+
+    const count = await TransactionService.bulkUpdateCategory(userId, oldCategory, newCategory);
+
+    logger.info('Bulk category update completed:', { userId, oldCategory, newCategory, count });
+
+    res.json({
+      success: true,
+      message: `Updated ${count} transaction(s)`,
+      data: { count },
     });
   });
 }

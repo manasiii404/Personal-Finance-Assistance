@@ -87,8 +87,10 @@ export class TransactionService {
     filters: TransactionFilters
   ): Promise<PaginatedResponse<any>> {
     try {
-      const { page = 1, limit = 10, search, category, type, startDate, endDate } = filters;
+      const { page = 1, limit = 999999, search, category, type, startDate, endDate } = filters;
       const { offset } = calculatePagination(page, limit, 0);
+
+      logger.info('📊 Transaction query params:', { page, limit, offset, filters });
 
       // Build where clause
       const where: Prisma.TransactionWhereInput = {
@@ -111,13 +113,12 @@ export class TransactionService {
 
       // Get total count
       const total = await prisma.transaction.count({ where });
+      logger.info('📈 Total transactions in DB:', { total, limit, willReturn: Math.min(total, limit) });
 
-      // Get transactions
+      // Get transactions - fetch ALL without pagination
       const transactions = await prisma.transaction.findMany({
         where,
         orderBy: { date: 'desc' },
-        skip: offset,
-        take: limit,
         include: {
           user: {
             select: {
@@ -128,6 +129,8 @@ export class TransactionService {
           },
         },
       });
+
+      logger.info('✅ Returning transactions:', { count: transactions.length, total });
 
       const pagination = calculatePagination(page, limit, total);
 
@@ -411,6 +414,105 @@ export class TransactionService {
     } catch (error) {
       logger.error('Error updating budget spending:', error);
       // Don't throw error here as it's a side effect
+    }
+  }
+
+  // Bulk update category for all transactions
+  static async bulkUpdateCategory(userId: string, oldCategory: string, newCategory: string) {
+    try {
+      const result = await prisma.transaction.updateMany({
+        where: {
+          userId,
+          category: oldCategory,
+        },
+        data: {
+          category: newCategory,
+        },
+      });
+
+      logger.info('Bulk category update completed:', { userId, oldCategory, newCategory, count: result.count });
+      return result.count;
+    } catch (error) {
+      logger.error('Error bulk updating category:', error);
+      throw error;
+    }
+  }
+
+  // Count transactions by category
+  static async countByCategory(userId: string, category: string): Promise<number> {
+    try {
+      const count = await prisma.transaction.count({
+        where: {
+          userId,
+          category,
+        },
+      });
+
+      return count;
+    } catch (error) {
+      logger.error('Error counting transactions by category:', error);
+      throw error;
+    }
+  }
+
+  // Get unique category count
+  static async getCategoryCount(userId: string, startDate?: string, endDate?: string): Promise<number> {
+    try {
+      const where: Prisma.TransactionWhereInput = {
+        userId,
+        ...(startDate && endDate && {
+          date: {
+            gte: new Date(startDate),
+            lte: new Date(endDate),
+          },
+        }),
+      };
+
+      const categories = await prisma.transaction.findMany({
+        where,
+        select: {
+          category: true,
+        },
+        distinct: ['category'],
+      });
+
+      return categories.length;
+    } catch (error) {
+      logger.error('Error getting category count:', error);
+      throw error;
+    }
+  }
+
+  // Get monthly trends with real data
+  static async getMonthlyTrends(userId: string, months: number = 6) {
+    try {
+      const trends = [];
+      const currentDate = new Date();
+
+      for (let i = months - 1; i >= 0; i--) {
+        const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() - i + 1, 0, 23, 59, 59);
+        const monthName = monthStart.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+        const stats = await this.getTransactionStats(
+          userId,
+          monthStart.toISOString().split('T')[0],
+          monthEnd.toISOString().split('T')[0]
+        );
+
+        trends.push({
+          month: monthName,
+          income: stats.totalIncome,
+          expenses: stats.totalExpenses,
+          savings: stats.netIncome,
+          savingsRate: stats.savingsRate,
+        });
+      }
+
+      return trends;
+    } catch (error) {
+      logger.error('Error getting monthly trends:', error);
+      throw error;
     }
   }
 }

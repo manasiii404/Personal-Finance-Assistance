@@ -4,13 +4,13 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { auth } from '../middleware/auth';
+import { authenticateToken } from '../middleware/auth';
 import { notificationService } from '../services/notificationService';
 
 const router = Router();
 
 // All routes require authentication
-router.use(auth);
+router.use(authenticateToken);
 
 /**
  * GET /api/notifications/status
