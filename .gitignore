@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 .env
 /diagrams/
+/backend/.env
