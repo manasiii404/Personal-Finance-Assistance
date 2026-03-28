@@ -1,28 +1,22 @@
-# ML Service Dependencies
-fastapi==0.104.1
-uvicorn==0.24.0
-pydantic==2.5.0
-python-multipart==0.0.6
+# ML Service — Required Dependencies Only
+# Used in: main.py, transaction_categorizer.py, expense_forecaster.py, config.py
 
-# ML Libraries
-scikit-learn==1.3.2
-xgboost==2.0.2
-pandas==2.1.3
-numpy>=1.26.0
+# API Framework
+fastapi==0.109.2
+uvicorn==0.27.1
+pydantic==2.6.1
+python-multipart==0.0.9
+
+# ML — Transaction Categorizer (TF-IDF + Random Forest)
+scikit-learn==1.4.0
+
+# ML — Expense Forecaster (Prophet time-series)
+prophet==1.1.5
+
+# Data Processing
+pandas==2.2.0
+numpy==1.26.4
 joblib==1.3.2
 
-# Time Series Forecasting
-prophet==1.2.1
-statsmodels==0.14.0
-
-# NLP
-nltk==3.8.1
-
-# Database
-pymongo==4.6.0
-motor==3.3.2
-
-# Utilities
+# Config / Env
 python-dotenv==1.0.0
-requests==2.31.0
-schedule==1.2.0
